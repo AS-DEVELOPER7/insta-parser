@@ -1,0 +1,239 @@
+import JSZip from 'jszip';
+export { decodeIgText } from './jsonDecoder';
+
+export async function resolveZipStructure(zipFile) {
+  const zip = new JSZip();
+  const contents = await zip.loadAsync(zipFile);
+
+  const fileNames = Object.keys(contents.files).filter(
+    (name) => !contents.files[name].dir
+  );
+
+  console.log('ZIP loaded. Total files found:', fileNames.length);
+
+  let isHtml = false;
+  let isJson = false;
+
+  const postFiles = [];
+  const storyFiles = [];
+  const reelFiles = [];
+  const commentFiles = [];
+  const messageFiles = [];
+  const connectionFiles = [];
+  const loggedInfoFiles = [];
+  const preferenceFiles = [];
+  const personalInfoFiles = [];
+  const mediaFiles = {};
+
+  const MEDIA_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.mp4', '.mov', '.m4a', '.mp3', '.ogg', '.wav'];
+
+  // Excluded top-level folders per user rules:
+  // - security_and_login_information
+  // - ads_information
+  // - apps_and_websites_off_of_instagram
+  const isExcluded = (lowerPath) =>
+    lowerPath.includes('security_and_login_information') ||
+    lowerPath.includes('apps_and_websites_off_of_instagram');
+
+  fileNames.forEach((path) => {
+    const lower = path.toLowerCase();
+    const filename = path.split('/').pop().toLowerCase();
+
+    if (isExcluded(lower)) return;
+
+    if (lower.endsWith('.json')) isJson = true;
+    if (lower.endsWith('.html')) isHtml = true;
+
+    // Index all media files under media/ directory
+    const isMedia = MEDIA_EXTENSIONS.some((ext) => lower.endsWith(ext));
+    if (isMedia) {
+      mediaFiles[lower] = contents.files[path];
+      mediaFiles[filename] = contents.files[path];
+
+      const parts = path.split('/');
+      if (parts.length >= 2) {
+        const lastTwo = parts.slice(-2).join('/').toLowerCase();
+        mediaFiles[lastTwo] = contents.files[path];
+      }
+      if (parts.length >= 3) {
+        const lastThree = parts.slice(-3).join('/').toLowerCase();
+        mediaFiles[lastThree] = contents.files[path];
+      }
+    }
+
+    // Index JSON / HTML data files according to strict rules
+    if (lower.endsWith('.json') || lower.endsWith('.html')) {
+      if (lower.includes('messages/') || lower.includes('inbox/')) {
+        messageFiles.push(path);
+      } else if (lower.includes('personal_information/personal_information.json') || lower.endsWith('personal_information.json')) {
+        personalInfoFiles.push(path);
+      } else if (
+        lower.includes('connections/') ||
+        lower.includes('followers_and_following/') ||
+        lower.includes('follower') ||
+        lower.includes('following') ||
+        lower.includes('blocked') ||
+        lower.includes('close_friend') ||
+        lower.includes('follow_request') ||
+        lower.includes('hide_story')
+      ) {
+        connectionFiles.push(path);
+      } else if (lower.includes('logged_information/')) {
+        loggedInfoFiles.push(path);
+      } else if (lower.includes('preferences/')) {
+        preferenceFiles.push(path);
+      } else if (
+        !lower.includes('interested') &&
+        !lower.includes('deleted') &&
+        !lower.includes('liked') &&
+        !lower.includes('comment') &&
+        (
+          lower.includes('media/posts') ||
+          lower.includes('your_posts') ||
+          lower.includes('content/posts') ||
+          lower.endsWith('/posts.json') ||
+          lower.endsWith('posts.json') ||
+          /\/posts_\d+\.json$/i.test(lower)
+        )
+      ) {
+        postFiles.push(path);
+      } else if (
+        lower.includes('content/stories') ||
+        lower.includes('your_stories') ||
+        lower.includes('stories_') ||
+        lower.endsWith('stories.json') ||
+        lower.endsWith('stories.html') ||
+        (lower.includes('stories') && (lower.endsWith('.json') || lower.endsWith('.html')))
+      ) {
+        storyFiles.push(path);
+      }
+    }
+  });
+
+  const format = isJson ? 'json' : isHtml ? 'html' : 'unknown';
+
+  const followerFiles = connectionFiles.filter((f) => f.toLowerCase().includes('follower'));
+  const followingFiles = connectionFiles.filter((f) => f.toLowerCase().includes('following'));
+
+  return {
+    zip,
+    format,
+    totalFiles: fileNames.length,
+    messageFiles,
+    personalInfoFiles,
+    connectionFiles,
+    followerFiles,
+    followingFiles,
+    loggedInfoFiles,
+    preferenceFiles,
+    mediaFiles,
+    postFiles,
+    storyFiles,
+  };
+}
+
+export function findMediaInZip(uri, mediaFiles, zip, threadFolderId = '') {
+  if (!uri) return null;
+
+  const cleanUri = uri.replace(/^(\.\/|\/)/, '');
+  const lowerUri = cleanUri.toLowerCase();
+  const filename = cleanUri.split('/').pop().toLowerCase();
+
+  // 1. Direct match in indexed media dictionary
+  if (mediaFiles[lowerUri]) return mediaFiles[lowerUri];
+  if (mediaFiles[filename]) return mediaFiles[filename];
+
+  // 2. Thread-specific path match (e.g. udaipurwale_4891764450892608/photos/123.jpg)
+  if (threadFolderId) {
+    const threadSubpath = `${threadFolderId}/${lowerUri}`.toLowerCase();
+    if (mediaFiles[threadSubpath]) return mediaFiles[threadSubpath];
+
+    const lastTwoThread = `${threadFolderId}/${cleanUri.split('/').slice(-2).join('/')}`.toLowerCase();
+    if (mediaFiles[lastTwoThread]) return mediaFiles[lastTwoThread];
+  }
+
+  // 3. Fallback search across all files in ZIP ending with filename
+  const zipKeys = Object.keys(zip.files);
+  const matchingKey = zipKeys.find((key) => key.toLowerCase().endsWith(filename));
+  if (matchingKey) return zip.files[matchingKey];
+
+  console.warn('Could not locate media file in ZIP:', uri, 'filename:', filename);
+  return null;
+}
+
+export async function inspectZipThreads(file, userId) {
+  const zip = await JSZip.loadAsync(file);
+  const fileNames = Object.keys(zip.files);
+
+  const isJson = fileNames.some((f) => f.endsWith('.json') && f.includes('messages/'));
+  const format = isJson ? 'json' : 'html';
+
+  const threadMap = new Map();
+
+  for (const filePath of fileNames) {
+    const lower = filePath.toLowerCase();
+    if (!lower.endsWith('.json') && !lower.endsWith('.html')) continue;
+    if (!lower.includes('messages/') && !lower.includes('inbox/')) continue;
+
+    const parts = filePath.split('/');
+    if (parts.length < 2) continue;
+    const threadFolderId = parts[parts.length - 2];
+    if (!threadFolderId || threadFolderId === 'messages' || threadFolderId === 'inbox') continue;
+
+    if (!threadMap.has(threadFolderId)) {
+      let displayName = threadFolderId.split('_')[0] || threadFolderId;
+      threadMap.set(threadFolderId, {
+        threadFolderId,
+        participantName: displayName,
+        fileCount: 0,
+      });
+    }
+
+    const item = threadMap.get(threadFolderId);
+    item.fileCount += 1;
+
+    // Read title from first file if possible
+    if (item.fileCount === 1) {
+      try {
+        const content = await zip.files[filePath].async('string');
+        if (format === 'json') {
+          const parsed = JSON.parse(content);
+          if (parsed.title) item.participantName = decodeIgText(parsed.title);
+        } else {
+          const titleMatch = content.match(/<title>(.*?)<\/title>/i);
+          if (titleMatch && titleMatch[1]) {
+            item.participantName = titleMatch[1].trim();
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
+  // Check Supabase for existing conversations
+  let existingFolders = new Set();
+  let existingNames = new Set();
+  if (userId) {
+    try {
+      const { createClient } = await import('../supabase/client');
+      const supabase = createClient();
+      const { data: existingConvs } = await supabase
+        .from('conversations')
+        .select('thread_folder_id, participant_name')
+        .eq('user_id', userId);
+
+      if (existingConvs) {
+        existingConvs.forEach((c) => {
+          if (c.thread_folder_id) existingFolders.add(c.thread_folder_id);
+          if (c.participant_name) existingNames.add(c.participant_name.toLowerCase());
+        });
+      }
+    } catch (e) {}
+  }
+
+  const threadsList = Array.from(threadMap.values()).map((t) => ({
+    ...t,
+    existsInDb: existingFolders.has(t.threadFolderId) || existingNames.has(t.participantName.toLowerCase()),
+  }));
+
+  return { format, threads: threadsList };
+}
