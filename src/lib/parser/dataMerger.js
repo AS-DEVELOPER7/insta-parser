@@ -403,16 +403,35 @@ export async function processAndMergeZip(
           });
         }
 
-        // Delete existing messages for this conversation so re-importing cleanly replaces the thread
-        await supabase
+        // Fetch existing message keys (sender + sent_at) to merge archives without deleting old history
+        const { data: existingMsgKeys } = await supabase
           .from("messages")
-          .delete()
+          .select("sender_name, sent_at")
           .eq("conversation_id", dbConv.id);
 
-        // Bulk insert all messages in chunks of 200 (super fast & preserves 100% of identical timestamp messages)
+        const existingSet = new Set();
+        if (existingMsgKeys) {
+          existingMsgKeys.forEach((m) => {
+            const timeKey = m.sent_at ? new Date(m.sent_at).getTime() : 0;
+            existingSet.add(`${m.sender_name}_${timeKey}`);
+          });
+        }
+
+        // Filter messagesToInsert to ONLY keep non-duplicate messages
+        const newMessagesToInsert = messagesToInsert.filter((msg) => {
+          const timeKey = msg.sent_at ? new Date(msg.sent_at).getTime() : 0;
+          const key = `${msg.sender_name}_${timeKey}`;
+          return !existingSet.has(key);
+        });
+
+        console.log(
+          `Conversation [${thread.participantName}]: ${messagesToInsert.length} total messages in file, ${newMessagesToInsert.length} new messages to merge into Supabase.`,
+        );
+
+        // Bulk insert ONLY the new non-duplicate messages in chunks of 200
         const CHUNK_SIZE = 200;
-        for (let i = 0; i < messagesToInsert.length; i += CHUNK_SIZE) {
-          const chunk = messagesToInsert.slice(i, i + CHUNK_SIZE);
+        for (let i = 0; i < newMessagesToInsert.length; i += CHUNK_SIZE) {
+          const chunk = newMessagesToInsert.slice(i, i + CHUNK_SIZE);
           const { error: batchErr } = await supabase
             .from("messages")
             .insert(chunk);
