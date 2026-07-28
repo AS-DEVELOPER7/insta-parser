@@ -7,6 +7,7 @@ import {
   useLazyGetProfileQuery,
   useLazyGetMediaVaultQuery,
 } from "@/store/api/apiSlice";
+import { PAGINATION_LIMITS } from "@/constants/config";
 
 export default function MediaVaultPage() {
   const [triggerGetProfile, { data: profileData }] = useLazyGetProfileQuery();
@@ -44,7 +45,7 @@ export default function MediaVaultPage() {
     setOffset(0);
     setHasMore(true);
 
-    triggerGetMedia({ filter, limit: 30, offset: 0 }, true)
+    triggerGetMedia({ filter, limit: PAGINATION_LIMITS.MEDIA_VAULT_BATCH_SIZE, offset }, true)
       .unwrap()
       .then((data) => {
         if (!isMounted) return;
@@ -74,7 +75,7 @@ export default function MediaVaultPage() {
     if (scrollTop + clientHeight >= scrollHeight - 300) {
       setIsLoadingMore(true);
 
-      triggerGetMedia({ filter, limit: 30, offset })
+      triggerGetMedia({ filter, limit: PAGINATION_LIMITS.MEDIA_VAULT_BATCH_SIZE, offset })
         .unwrap()
         .then((data) => {
           const newItems = data.media || [];

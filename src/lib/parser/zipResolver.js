@@ -192,20 +192,87 @@ export async function inspectZipThreads(file, userId) {
     const item = threadMap.get(threadFolderId);
     item.fileCount += 1;
 
-    // Read title from first file if possible
-    if (item.fileCount === 1) {
+    // Read title or participants from message file until real participant name is decoded
+    if (!item.hasRealName) {
       try {
-        const content = await zip.files[filePath].async('string');
-        if (format === 'json') {
-          const parsed = JSON.parse(content);
-          if (parsed.title) item.participantName = decodeIgText(parsed.title);
-        } else {
-          const titleMatch = content.match(/<title>(.*?)<\/title>/i);
-          if (titleMatch && titleMatch[1]) {
-            item.participantName = titleMatch[1].trim();
+        const isPrimaryFile =
+          lower.endsWith('message_1.json') ||
+          lower.endsWith('message_1.html') ||
+          lower.endsWith('message.json') ||
+          lower.endsWith('message.html');
+
+        if (isPrimaryFile || !item.hasTriedFile) {
+          item.hasTriedFile = true;
+          const content = await zip.files[filePath].async('string');
+
+          if (lower.endsWith('.json')) {
+            let candidateName = null;
+            const contentSnippet = content.slice(0, 8000);
+
+            // 1. Try "title": "..."
+            const titleMatch = contentSnippet.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+            if (titleMatch && titleMatch[1]) {
+              try {
+                candidateName = decodeIgText(JSON.parse(`"${titleMatch[1]}"`));
+              } catch (e) {
+                candidateName = decodeIgText(titleMatch[1]);
+              }
+            }
+
+            // 2. Try "participants": [ { "name": "..." } ]
+            if (!candidateName) {
+              const partMatch = contentSnippet.match(/"participants"\s*:\s*\[\s*\{\s*"name"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+              if (partMatch && partMatch[1]) {
+                try {
+                  candidateName = decodeIgText(JSON.parse(`"${partMatch[1]}"`));
+                } catch (e) {
+                  candidateName = decodeIgText(partMatch[1]);
+                }
+              }
+            }
+
+            // 3. Try "sender_name": "..."
+            if (!candidateName) {
+              const senderMatch = contentSnippet.match(/"sender_name"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+              if (senderMatch && senderMatch[1]) {
+                try {
+                  candidateName = decodeIgText(JSON.parse(`"${senderMatch[1]}"`));
+                } catch (e) {
+                  candidateName = decodeIgText(senderMatch[1]);
+                }
+              }
+            }
+
+            // 4. Fallback to full JSON parse
+            if (!candidateName) {
+              try {
+                const parsed = JSON.parse(content);
+                const title = parsed.title || parsed.participants?.[0]?.name || parsed.messages?.find((m) => m.sender_name)?.sender_name;
+                if (title) candidateName = decodeIgText(title);
+              } catch (e) {}
+            }
+
+            if (candidateName) {
+              item.participantName = candidateName;
+              item.hasRealName = true;
+            }
+          } else {
+            const titleMatch =
+              content.match(/<div class="_3-96 _2pio _2lek _2lel">(.*?)<\/div>/i) ||
+              content.match(/<title>(.*?)<\/title>/i) ||
+              content.match(/<h1>(.*?)<\/h1>/i);
+            if (titleMatch && titleMatch[1]) {
+              const cleanTitle = titleMatch[1].replace(/<[^>]+>/g, '').trim();
+              if (cleanTitle) {
+                item.participantName = cleanTitle;
+                item.hasRealName = true;
+              }
+            }
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error reading thread title:', e);
+      }
     }
   }
 

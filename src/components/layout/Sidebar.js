@@ -15,6 +15,7 @@ import {
   Instagram,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { APP_CONFIG } from '@/constants/config';
 
 export default function Sidebar({ userProfile }) {
   const pathname = usePathname();
@@ -60,7 +61,7 @@ export default function Sidebar({ userProfile }) {
             hovered ? 'max-w-[160px] opacity-100' : 'max-w-0 opacity-0'
           }`}
         >
-          InstaVault
+          {APP_CONFIG.NAME}
         </span>
       </Link>
 

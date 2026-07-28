@@ -8,12 +8,15 @@ import { createClient } from '@/lib/supabase/client';
 import Input from '@/components/atoms/Input';
 import Button from '@/components/atoms/Button';
 
+import { getAppOrigin, APP_CONFIG } from '@/constants/config';
+
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -24,10 +27,13 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      const redirectUrl = `${getAppOrigin()}/upload`;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             username: username || email.split('@')[0],
             full_name: fullName,
@@ -48,6 +54,12 @@ export default function SignupPage() {
           full_name: fullName,
         });
 
+        if (!authData.session) {
+          setSuccessMsg('Account created! Please check your email inbox to confirm your account.');
+          setLoading(false);
+          return;
+        }
+
         router.push('/upload');
         router.refresh();
       }
@@ -66,7 +78,7 @@ export default function SignupPage() {
             <Instagram size={24} />
           </div>
           <span className="font-bold text-2xl tracking-tight text-white">
-            InstaVault
+            {APP_CONFIG.NAME}
           </span>
         </div>
 
@@ -77,6 +89,12 @@ export default function SignupPage() {
         {errorMsg && (
           <div className="w-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-lg p-3 mb-4 text-center">
             {errorMsg}
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs rounded-lg p-4 mb-4 text-center">
+            {successMsg}
           </div>
         )}
 

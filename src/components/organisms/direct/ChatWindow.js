@@ -28,6 +28,7 @@ import {
   useLazyGetProfileQuery,
   useLazyGetMediaMessagesQuery,
 } from "@/store/api/apiSlice";
+import { PAGINATION_LIMITS } from "@/constants/config";
 
 function cleanName(name) {
   if (!name) return "";
@@ -213,7 +214,13 @@ export default function ChatWindow({
     setMatchIndex(0);
     setHighlightedMsgId(null);
 
-    triggerGetMessages({ conversationId: activeConv.id, limit: 150 }, true)
+    triggerGetMessages(
+      {
+        conversationId: activeConv.id,
+        limit: PAGINATION_LIMITS.MESSAGES_DEFAULT,
+      },
+      true,
+    )
       .unwrap()
       .then((res) => {
         if (!isMounted) return;
@@ -253,7 +260,7 @@ export default function ChatWindow({
         {
           conversationId: activeConv.id,
           beforeDate: earliestMsg.sent_at,
-          limit: 100,
+          limit: PAGINATION_LIMITS.MESSAGES_SCROLL_UP,
         },
         true,
       )
@@ -268,7 +275,10 @@ export default function ChatWindow({
               );
               return [...filteredNew, ...prev];
             });
-            setHasMoreOlder(res.hasMoreOlder ?? newChunk.length === 100);
+            setHasMoreOlder(
+              res.hasMoreOlder ??
+                newChunk.length === PAGINATION_LIMITS.MESSAGES_SCROLL_UP,
+            );
           } else {
             setHasMoreOlder(false);
           }
@@ -292,7 +302,7 @@ export default function ChatWindow({
         {
           conversationId: activeConv.id,
           afterDate: latestMsg.sent_at,
-          limit: 100,
+          limit: PAGINATION_LIMITS.MESSAGES_SCROLL_DOWN,
         },
         true,
       )
@@ -307,7 +317,10 @@ export default function ChatWindow({
               );
               return [...prev, ...filteredNew];
             });
-            setHasMoreNewer(res.hasMoreNewer ?? newChunk.length === 100);
+            setHasMoreNewer(
+              res.hasMoreNewer ??
+                newChunk.length === PAGINATION_LIMITS.MESSAGES_SCROLL_DOWN,
+            );
           } else {
             setHasMoreNewer(false);
           }
@@ -404,7 +417,7 @@ export default function ChatWindow({
           {
             conversationId: activeConv.id,
             aroundId: targetMatch.id,
-            limit: 150,
+            limit: PAGINATION_LIMITS.MESSAGES_SEARCH_WINDOW,
           },
           true,
         )

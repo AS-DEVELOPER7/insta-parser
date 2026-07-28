@@ -10,6 +10,7 @@ import {
 } from "./preferencesParser";
 import { uploadMediaToCloudinary } from "./uploader";
 import { createClient } from "../supabase/client";
+import { CLOUDINARY_CONFIG } from "@/constants/config";
 
 export async function processAndMergeZip(
   file,
@@ -160,7 +161,7 @@ export async function processAndMergeZip(
               const uploaded = await uploadMediaToCloudinary(
                 media.zipEntry,
                 media.uri,
-                "insta_parser/posts",
+                CLOUDINARY_CONFIG.FOLDERS.POSTS,
               );
               if (uploaded) {
                 mediaUrl = uploaded.mediaUrl;
@@ -217,7 +218,7 @@ export async function processAndMergeZip(
             const uploaded = await uploadMediaToCloudinary(
               story.zipEntry,
               story.mediaUri,
-              "insta_parser/stories",
+              CLOUDINARY_CONFIG.FOLDERS.STORIES,
             );
             if (uploaded) mediaUrl = uploaded.mediaUrl;
           }
@@ -302,7 +303,7 @@ export async function processAndMergeZip(
         )
           .replace(/[^a-zA-Z0-9_\-]/g, "_")
           .substring(0, 50);
-        const chatFolder = `insta_parser/chats/${sanitizedChatName}`;
+        const chatFolder = `${CLOUDINARY_CONFIG.FOLDERS.CHATS}/${sanitizedChatName}`;
 
         // Batch query existing media_urls for this conversation
         const { data: existingMsgs } = await supabase
@@ -564,7 +565,7 @@ export async function processAndMergeZip(
             const uploadedAvatar = await uploadMediaToCloudinary(
               picZipEntry,
               cleanPicUri,
-              'insta_parser/avatar'
+              CLOUDINARY_CONFIG.FOLDERS.AVATAR
             );
             if (uploadedAvatar?.mediaUrl) {
               profileUpdates.avatar_url = uploadedAvatar.mediaUrl;

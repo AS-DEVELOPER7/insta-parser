@@ -31,7 +31,7 @@ export const apiSlice = createApi({
     }),
     getMediaVault: builder.query({
       query: ({ filter = 'all', limit = 20, offset = 0 } = {}) =>
-        `/media?filter=${filter}&limit=${limit}&offset=${offset}`,
+        `/media?filter=${filter}&type=${filter}&limit=${limit}&offset=${offset}`,
       providesTags: ['MediaVault'],
     }),
     getConversations: builder.query({

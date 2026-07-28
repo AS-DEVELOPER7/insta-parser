@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { PAGINATION_LIMITS } from '@/constants/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,10 @@ export async function GET(request) {
     const beforeDate = searchParams.get('beforeDate');
     const afterDate = searchParams.get('afterDate');
 
-    const limit = Math.min(Math.max(parseInt(limitParam || '200', 10), 1), 500);
+    const limit = Math.min(
+      Math.max(parseInt(limitParam || String(PAGINATION_LIMITS.MESSAGES_DEFAULT), 10), 1),
+      PAGINATION_LIMITS.MESSAGES_MAX
+    );
     const offset = Math.max(parseInt(offsetParam || '0', 10), 0);
 
     // Get total message count for this conversation

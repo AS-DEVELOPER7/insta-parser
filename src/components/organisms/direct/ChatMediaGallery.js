@@ -23,6 +23,14 @@ export default function ChatMediaGallery({
 
   const [mediaItems, setMediaItems] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [counts, setCounts] = useState({
+    all: 0,
+    image: 0,
+    video: 0,
+    audio: 0,
+    reel: 0,
+    link: 0,
+  });
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
@@ -49,6 +57,7 @@ export default function ChatMediaGallery({
         const newItems = data.mediaMessages || [];
         setMediaItems(newItems);
         setTotalCount(data.totalCount || 0);
+        if (data.counts) setCounts(data.counts);
         setOffset(data.nextOffset || newItems.length);
         setHasMore(data.hasMore ?? false);
       })
@@ -141,23 +150,32 @@ export default function ChatMediaGallery({
       {/* Filter Tabs */}
       <div className="flex items-center gap-1.5 px-5 py-2.5 border-b border-[#1f1f1f] bg-[#090909] flex-shrink-0 overflow-x-auto no-scrollbar">
         {[
-          { id: "all", label: "All" },
-          { id: "image", label: "Images" },
-          { id: "video", label: "Videos" },
-          { id: "audio", label: "Audio" },
-          { id: "reel", label: "Reels" },
-          { id: "link", label: "Links" },
+          { id: "all", label: "All", count: counts.all },
+          { id: "image", label: "Images", count: counts.image },
+          { id: "video", label: "Videos", count: counts.video },
+          { id: "audio", label: "Audio", count: counts.audio },
+          { id: "reel", label: "Reels", count: counts.reel },
+          { id: "link", label: "Links", count: counts.link },
         ].map((t) => (
           <button
             key={t.id}
             onClick={() => setFilter(t.id)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-all flex-shrink-0 ${
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-all flex-shrink-0 flex items-center gap-1.5 ${
               filter === t.id
                 ? "bg-ig-primary text-white shadow-sm font-semibold"
                 : "bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#262626]"
             }`}
           >
-            {t.label}
+            <span>{t.label}</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                filter === t.id
+                  ? "bg-white/20 text-white"
+                  : "bg-[#282828] text-gray-400"
+              }`}
+            >
+              {t.count || 0}
+            </span>
           </button>
         ))}
       </div>

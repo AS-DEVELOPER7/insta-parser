@@ -5,8 +5,9 @@ import { Sliders, Tv, UserX, ShieldAlert, Search, Loader2 } from 'lucide-react';
 import Skeleton from '@/components/atoms/Skeleton';
 import AdCard from '@/components/molecules/preferences/AdCard';
 import UninterestedProfileCard from '@/components/molecules/preferences/UninterestedProfileCard';
+import { PAGINATION_LIMITS } from '@/constants/config';
 
-const BATCH_SIZE = 20;
+const BATCH_SIZE = PAGINATION_LIMITS.PREFERENCES_BATCH_SIZE;
 
 function formatDate(ts) {
   if (!ts) return 'N/A';

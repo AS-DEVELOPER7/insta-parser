@@ -1,12 +1,13 @@
 import './globals.css';
 import ReduxProvider from '@/components/providers/ReduxProvider';
+import { APP_CONFIG } from '@/constants/config';
 
 export const metadata = {
   title: {
-    default: 'InstaVault • Instagram Archive Analytics',
-    template: '%s • InstaVault',
+    default: `${APP_CONFIG.NAME} • Instagram Archive Analytics`,
+    template: `%s • ${APP_CONFIG.NAME}`,
   },
-  description: 'View, search, and manage your official Instagram export archive in an authentic Instagram interface.',
+  description: APP_CONFIG.DESCRIPTION,
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },

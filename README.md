@@ -1,6 +1,6 @@
-# 📸 InstaVault — Instagram Export Archive Viewer & Analytics Platform
+# 📸 Insta Parser — Instagram Export Archive Viewer & Analytics Platform
 
-**InstaVault** is a high-performance single-page web application built with **Next.js**, **Supabase**, and **Cloudinary** that lets you upload, parse, inspect, and analyze exported Instagram data archives (`.zip` files in JSON or HTML format).
+**Insta Parser** is a high-performance single-page web application built with **Next.js**, **Supabase**, and **Cloudinary** that lets you upload, parse, inspect, and analyze exported Instagram data archives (`.zip` files in JSON or HTML format).
 
 ---
 

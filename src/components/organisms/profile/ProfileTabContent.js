@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Grid, Film, User, Eye, X, Layers, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import ProfileInfoDetails from '@/components/molecules/profile/ProfileInfoDetails';
+import { PAGINATION_LIMITS } from '@/constants/config';
 
-const BATCH_SIZE = 12;
+const BATCH_SIZE = PAGINATION_LIMITS.POSTS_BATCH_SIZE;
 
 export default function ProfileTabContent({
   activeTab = 'posts',

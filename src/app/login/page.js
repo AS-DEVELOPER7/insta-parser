@@ -7,6 +7,7 @@ import { Instagram } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Input from '@/components/atoms/Input';
 import Button from '@/components/atoms/Button';
+import { APP_CONFIG } from '@/constants/config';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -48,7 +49,7 @@ export default function LoginPage() {
             <Instagram size={24} />
           </div>
           <span className="font-bold text-2xl tracking-tight text-white">
-            InstaVault
+            {APP_CONFIG.NAME}
           </span>
         </div>
 
@@ -74,6 +75,15 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
           />
+
+          <div className="flex justify-end w-full pt-1">
+            <Link
+              href="/forgot-password"
+              className="text-xs text-gray-400 hover:text-white font-medium transition-colors cursor-pointer py-1"
+            >
+              Forgot password?
+            </Link>
+          </div>
 
           <Button
             type="submit"
