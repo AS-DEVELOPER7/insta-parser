@@ -12,6 +12,38 @@ import { uploadMediaToCloudinary } from "./uploader";
 import { createClient } from "../supabase/client";
 import { CLOUDINARY_CONFIG } from "@/constants/config";
 
+/**
+ * Helper to fetch ALL existing messages for a conversation from Supabase using pagination.
+ * Supabase REST API limits .select() queries to 1,000 records maximum by default without pagination.
+ */
+async function fetchAllExistingMessagesForConversation(supabase, conversationId) {
+  let allMessages = [];
+  let page = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("id, sender_name, sent_at, content, media_url, media_type, message_type, share_url, share_text")
+      .eq("conversation_id", conversationId)
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error || !data || data.length === 0) {
+      hasMore = false;
+    } else {
+      allMessages = allMessages.concat(data);
+      if (data.length < pageSize) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+  }
+
+  return allMessages;
+}
+
 export async function processAndMergeZip(
   file,
   userId,
@@ -305,48 +337,83 @@ export async function processAndMergeZip(
           .substring(0, 50);
         const chatFolder = `${CLOUDINARY_CONFIG.FOLDERS.CHATS}/${sanitizedChatName}`;
 
-        // Batch query existing media_urls for this conversation
-        const { data: existingMsgs } = await supabase
-          .from("messages")
-          .select("sender_name, sent_at, media_url")
-          .eq("conversation_id", dbConv.id)
-          .not("media_url", "is", null);
+        // 1. Fetch ALL existing messages in Supabase for this conversation (bypassing 1,000 row cap)
+        const existingMsgs = await fetchAllExistingMessagesForConversation(
+          supabase,
+          dbConv.id,
+        );
 
-        // Build dual maps: by filename AND by (sender + minute timestamp)
+        // 2. Identify & Clean Up Existing Duplicate Rows in Supabase Database (if any exist from prior runs)
+        const existingSet = new Set();
+        const duplicateIdsToDelete = [];
+        const cleanExistingMsgs = [];
+
+        for (const m of existingMsgs) {
+          const timeKey = m.sent_at ? new Date(m.sent_at).getTime() : 0;
+          const secondKey = Math.floor(timeKey / 1000);
+          const cleanContent = (m.content || "").trim().toLowerCase();
+
+          const exactKey = `${m.sender_name}_${timeKey}`;
+          const secondContentKey = cleanContent
+            ? `${m.sender_name}_${secondKey}_${cleanContent}`
+            : null;
+          const secondMediaKey = `${m.sender_name}_${secondKey}_${m.message_type || "text"}_${m.media_url || m.share_url || ""}`;
+
+          // Check if this row is a DB duplicate of an earlier fetched row
+          const isDuplicate =
+            existingSet.has(exactKey) ||
+            (secondContentKey && existingSet.has(secondContentKey)) ||
+            ((m.media_url || m.share_url) && existingSet.has(secondMediaKey));
+
+          if (isDuplicate) {
+            duplicateIdsToDelete.push(m.id);
+          } else {
+            existingSet.add(exactKey);
+            if (secondContentKey) existingSet.add(secondContentKey);
+            if (m.media_url || m.share_url) existingSet.add(secondMediaKey);
+            cleanExistingMsgs.push(m);
+          }
+        }
+
+        // Delete existing duplicate rows from Supabase in chunks of 200
+        if (duplicateIdsToDelete.length > 0) {
+          console.log(
+            `Cleaning up ${duplicateIdsToDelete.length} existing duplicate message rows in DB for conversation [${thread.participantName}]...`,
+          );
+          const DELETE_CHUNK_SIZE = 200;
+          for (let d = 0; d < duplicateIdsToDelete.length; d += DELETE_CHUNK_SIZE) {
+            const chunk = duplicateIdsToDelete.slice(d, d + DELETE_CHUNK_SIZE);
+            await supabase.from("messages").delete().in("id", chunk);
+          }
+        }
+
+        // 3. Build dual maps for Cloudinary uploads using cleaned existing messages
         const existingMediaByFilename = new Map();
         const existingMediaBySenderTime = new Map();
 
-        if (existingMsgs) {
-          existingMsgs.forEach((m) => {
-            if (m.media_url && m.media_url.includes("cloudinary.com")) {
-              // 1. Map by sender + minute ISO key (e.g. "Mary_2024-06-27T21:27")
-              if (m.sender_name && m.sent_at) {
-                const minuteKey = new Date(m.sent_at)
-                  .toISOString()
-                  .slice(0, 16);
-                existingMediaBySenderTime.set(
-                  `${m.sender_name}_${minuteKey}`,
-                  m.media_url,
-                );
-              }
-
-              // 2. Map by filename snippet
-              const urlParts = m.media_url.split("/");
-              const fileWithExt = urlParts[urlParts.length - 1].split("?")[0];
-              if (fileWithExt) {
-                existingMediaByFilename.set(
-                  fileWithExt.toLowerCase(),
-                  m.media_url,
-                );
-                const baseName = fileWithExt.split(".")[0].toLowerCase();
-                if (baseName)
-                  existingMediaByFilename.set(baseName, m.media_url);
-              }
+        cleanExistingMsgs.forEach((m) => {
+          if (m.media_url && m.media_url.includes("cloudinary.com")) {
+            if (m.sender_name && m.sent_at) {
+              const minuteKey = new Date(m.sent_at).toISOString().slice(0, 16);
+              existingMediaBySenderTime.set(
+                `${m.sender_name}_${minuteKey}`,
+                m.media_url,
+              );
             }
-          });
-        }
+            const urlParts = m.media_url.split("/");
+            const fileWithExt = urlParts[urlParts.length - 1].split("?")[0];
+            if (fileWithExt) {
+              existingMediaByFilename.set(
+                fileWithExt.toLowerCase(),
+                m.media_url,
+              );
+              const baseName = fileWithExt.split(".")[0].toLowerCase();
+              if (baseName) existingMediaByFilename.set(baseName, m.media_url);
+            }
+          }
+        });
 
-        // Build array of messages to insert
+        // 4. Build array of NEW messages to insert (deduplicating against DB AND current file batch)
         const messagesToInsert = [];
         for (const msg of thread.messages) {
           let mediaUrl = null;
@@ -368,7 +435,6 @@ export async function processAndMergeZip(
               existingMediaBySenderTime.get(senderTimeKey);
 
             if (existingUrl) {
-              // Existing Cloudinary asset — skip re-upload completely!
               mediaUrl = existingUrl;
             } else {
               console.log(
@@ -389,49 +455,51 @@ export async function processAndMergeZip(
             }
           }
 
-          messagesToInsert.push({
-            conversation_id: dbConv.id,
-            sender_name: msg.senderName,
-            content: msg.content || null,
-            media_url: mediaUrl,
-            media_type: msg.mediaType || null,
-            message_type: msg.messageType || "text",
-            reactions: msg.reactions?.length > 0 ? msg.reactions : [],
-            share_url: msg.shareUrl || null,
-            share_text: msg.shareText || null,
-            sent_at: msg.sentAt,
-          });
+          const timeKey = msg.sentAt ? new Date(msg.sentAt).getTime() : 0;
+          const secondKey = Math.floor(timeKey / 1000);
+          const cleanContent = (msg.content || "").trim().toLowerCase();
+
+          const exactKey = `${msg.senderName}_${timeKey}`;
+          const secondContentKey = cleanContent
+            ? `${msg.senderName}_${secondKey}_${cleanContent}`
+            : null;
+          const secondMediaKey = `${msg.senderName}_${secondKey}_${msg.messageType || "text"}_${mediaUrl || msg.shareUrl || ""}`;
+
+          // Check if this message is already in DB or already added in current batch
+          const isDuplicate =
+            existingSet.has(exactKey) ||
+            (secondContentKey && existingSet.has(secondContentKey)) ||
+            ((mediaUrl || msg.shareUrl) && existingSet.has(secondMediaKey));
+
+          if (!isDuplicate) {
+            // Add keys to existingSet so duplicate entries within the file/batch are also blocked
+            existingSet.add(exactKey);
+            if (secondContentKey) existingSet.add(secondContentKey);
+            if (mediaUrl || msg.shareUrl) existingSet.add(secondMediaKey);
+
+            messagesToInsert.push({
+              conversation_id: dbConv.id,
+              sender_name: msg.senderName,
+              content: msg.content || null,
+              media_url: mediaUrl,
+              media_type: msg.mediaType || null,
+              message_type: msg.messageType || "text",
+              reactions: msg.reactions?.length > 0 ? msg.reactions : [],
+              share_url: msg.shareUrl || null,
+              share_text: msg.shareText || null,
+              sent_at: msg.sentAt,
+            });
+          }
         }
-
-        // Fetch existing message keys (sender + sent_at) to merge archives without deleting old history
-        const { data: existingMsgKeys } = await supabase
-          .from("messages")
-          .select("sender_name, sent_at")
-          .eq("conversation_id", dbConv.id);
-
-        const existingSet = new Set();
-        if (existingMsgKeys) {
-          existingMsgKeys.forEach((m) => {
-            const timeKey = m.sent_at ? new Date(m.sent_at).getTime() : 0;
-            existingSet.add(`${m.sender_name}_${timeKey}`);
-          });
-        }
-
-        // Filter messagesToInsert to ONLY keep non-duplicate messages
-        const newMessagesToInsert = messagesToInsert.filter((msg) => {
-          const timeKey = msg.sent_at ? new Date(msg.sent_at).getTime() : 0;
-          const key = `${msg.sender_name}_${timeKey}`;
-          return !existingSet.has(key);
-        });
 
         console.log(
-          `Conversation [${thread.participantName}]: ${messagesToInsert.length} total messages in file, ${newMessagesToInsert.length} new messages to merge into Supabase.`,
+          `Conversation [${thread.participantName}]: ${thread.messages.length} messages in file, ${messagesToInsert.length} new non-duplicate messages to merge into Supabase.`,
         );
 
         // Bulk insert ONLY the new non-duplicate messages in chunks of 200
         const CHUNK_SIZE = 200;
-        for (let i = 0; i < newMessagesToInsert.length; i += CHUNK_SIZE) {
-          const chunk = newMessagesToInsert.slice(i, i + CHUNK_SIZE);
+        for (let i = 0; i < messagesToInsert.length; i += CHUNK_SIZE) {
+          const chunk = messagesToInsert.slice(i, i + CHUNK_SIZE);
           const { error: batchErr } = await supabase
             .from("messages")
             .insert(chunk);

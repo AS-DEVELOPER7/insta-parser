@@ -92,6 +92,7 @@ export async function parseMessages(zipContext, onProgress, options = {}) {
         ownerUsername: null,   // will be filled from JSON title / HTML header
         isGroup: false,
         messages: [],
+        seenKeys: new Set(),
       });
     }
 
@@ -190,6 +191,14 @@ export async function parseMessages(zipContext, onProgress, options = {}) {
           else if (!rawContent) continue; // skip empty
 
           const content = rawContent || null;
+
+          const timeMs = new Date(sentAt).getTime();
+          const secondKey = Math.floor(timeMs / 1000);
+          const cleanText = (content || '').trim().toLowerCase();
+          const msgKey = `${senderName}_${secondKey}_${cleanText}_${mediaUri || shareUrl || ''}`;
+
+          if (conv.seenKeys.has(msgKey)) continue;
+          conv.seenKeys.add(msgKey);
 
           conv.messages.push({
             senderName,
@@ -358,6 +367,14 @@ export async function parseMessages(zipContext, onProgress, options = {}) {
             }
             return;
           }
+
+          const timeMs = new Date(sentAt).getTime();
+          const secondKey = Math.floor(timeMs / 1000);
+          const cleanText = (content || '').trim().toLowerCase();
+          const msgKey = `${senderName}_${secondKey}_${cleanText}_${mediaUri || shareUrl || ''}`;
+
+          if (conv.seenKeys.has(msgKey)) return;
+          conv.seenKeys.add(msgKey);
 
           conv.messages.push({
             senderName,
