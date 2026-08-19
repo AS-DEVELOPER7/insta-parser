@@ -42,7 +42,13 @@ export default function SignupPage() {
       });
 
       if (authError) {
-        setErrorMsg(authError.message);
+        if (authError.message?.toLowerCase().includes('failed to fetch')) {
+          setErrorMsg(
+            'Unable to connect to Supabase. Please configure your NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
+          );
+        } else {
+          setErrorMsg(authError.message);
+        }
         setLoading(false);
         return;
       }

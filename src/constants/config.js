@@ -19,7 +19,8 @@ export const CLOUDINARY_CONFIG = {
   FOLDERS: {
     POSTS: "insta_parser/posts",
     STORIES: "insta_parser/stories",
-    CHAT: "insta_parser/chat",
+    CHATS: "insta_parser/chats",
+    CHAT: "insta_parser/chats",
     AVATAR: "insta_parser/avatar",
   },
 };

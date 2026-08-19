@@ -154,10 +154,10 @@ export default function UploadDashboard() {
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
           Upload Instagram Export Data
         </h1>
-        <p className="text-gray-400 text-sm">
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
           Select your official Instagram exported ZIP archive (HTML or JSON
           format). New data will merge seamlessly with your existing vault
           without creating duplicates.
@@ -165,14 +165,14 @@ export default function UploadDashboard() {
       </div>
 
       {errorMsg && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl mb-6 flex items-center gap-3 text-sm">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-4 rounded-xl mb-6 flex items-center gap-3 text-sm">
           <AlertCircle size={20} className="shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {!completedStats ? (
-        <div className="bg-ig-surface border border-ig-border rounded-2xl p-6 md:p-10 text-center">
+        <div className="bg-white dark:bg-ig-surface border border-gray-200 dark:border-ig-border rounded-2xl p-6 md:p-10 text-center shadow-sm transition-colors duration-200">
           {!isProcessing ? (
             <>
               {/* Upload Dropzone Molecule */}
@@ -185,7 +185,7 @@ export default function UploadDashboard() {
               />
 
               {isScanning && (
-                <div className="mt-6 p-6 bg-black/40 border border-ig-border rounded-xl flex items-center justify-center gap-3 text-sm text-gray-300">
+                <div className="mt-6 p-6 bg-slate-50 dark:bg-black/40 border border-gray-200 dark:border-ig-border rounded-xl flex items-center justify-center gap-3 text-sm text-gray-700 dark:text-gray-300">
                   <RefreshCw size={18} className="animate-spin text-ig-primary" />
                   <span>Scanning ZIP file for chat threads...</span>
                 </div>
@@ -194,14 +194,14 @@ export default function UploadDashboard() {
               {file && !isScanning && (
                 <div className="mt-6 max-w-xl mx-auto space-y-4 text-left">
                   {detectedThreads.length > 0 ? (
-                    <div className="bg-black/60 border border-ig-border rounded-xl p-5 space-y-4">
+                    <div className="bg-slate-50 dark:bg-black/60 border border-gray-200 dark:border-ig-border rounded-xl p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold text-white text-sm flex items-center gap-2">
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                             <SlidersHorizontal size={16} className="text-ig-primary" />
                             <span>Select Chats to Upload / Update</span>
                           </h3>
-                          <p className="text-[11px] text-gray-400 mt-0.5">
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                             {selectedThreadIds.size} of {detectedThreads.length} chat threads selected
                           </p>
                         </div>
@@ -226,18 +226,18 @@ export default function UploadDashboard() {
 
                       {/* Search Bar */}
                       <div className="relative">
-                        <Search size={14} className="absolute left-3 top-2.5 text-gray-500" />
+                        <Search size={14} className="absolute left-3 top-2.5 text-gray-400 dark:text-gray-500" />
                         <input
                           type="text"
                           value={threadSearch}
                           onChange={(e) => setThreadSearch(e.target.value)}
                           placeholder="Search chat names..."
-                          className="w-full bg-[#161616] border border-[#2a2a2a] rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-ig-primary"
+                          className="w-full bg-white dark:bg-[#161616] border border-gray-200 dark:border-[#2a2a2a] rounded-lg pl-9 pr-3 py-1.5 text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-ig-primary"
                         />
                       </div>
 
                       {/* Scrollable list of threads with checkboxes */}
-                      <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 divide-y divide-[#1a1a1a]">
+                      <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 divide-y divide-gray-200 dark:divide-[#1a1a1a]">
                         {filteredThreads.map((thread) => {
                           const isSelected = selectedThreadIds.has(thread.threadFolderId);
 
@@ -246,7 +246,7 @@ export default function UploadDashboard() {
                               key={thread.threadFolderId}
                               onClick={() => handleToggleThread(thread.threadFolderId)}
                               className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${
-                                isSelected ? "bg-ig-primary/10 border border-ig-primary/30" : "bg-[#111] hover:bg-[#181818] border border-transparent"
+                                isSelected ? "bg-ig-primary/10 border border-ig-primary/30" : "bg-white dark:bg-[#111] hover:bg-gray-100 dark:hover:bg-[#181818] border border-transparent"
                               }`}
                             >
                               <input
@@ -256,12 +256,12 @@ export default function UploadDashboard() {
                                 className="w-4 h-4 rounded accent-ig-primary cursor-pointer"
                               />
 
-                              <div className="w-8 h-8 rounded-full bg-ig-surface border border-ig-border flex items-center justify-center font-bold text-white text-xs uppercase flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-ig-surface border border-gray-300 dark:border-ig-border flex items-center justify-center font-bold text-gray-900 dark:text-white text-xs uppercase flex-shrink-0">
                                 {thread.participantName.charAt(0)}
                               </div>
 
                               <div className="flex-1 min-w-0">
-                                <span className="font-semibold text-xs text-white truncate block">
+                                <span className="font-semibold text-xs text-gray-900 dark:text-white truncate block">
                                   {thread.participantName}
                                 </span>
                                 <span className="text-[10px] text-gray-500 block">
@@ -271,11 +271,11 @@ export default function UploadDashboard() {
 
                               <div>
                                 {thread.existsInDb ? (
-                                  <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-medium">
+                                  <span className="text-[10px] bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-0.5 rounded-full font-medium">
                                     Update Existing
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-medium">
+                                  <span className="text-[10px] bg-blue-500/10 text-blue-500 border border-blue-500/20 px-2 py-0.5 rounded-full font-medium">
                                     New Chat
                                   </span>
                                 )}
@@ -309,16 +309,16 @@ export default function UploadDashboard() {
                 <RefreshCw size={28} />
               </div>
 
-              <h3 className="text-xl font-bold text-white mb-2">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                 Processing Instagram Archive
               </h3>
-              <p className="text-sm text-gray-400 max-w-md mb-6">
+              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mb-6">
                 {status?.message ||
                   "Extracting media and parsing relational structure..."}
               </p>
 
-              <div className="w-full max-w-md bg-black border border-ig-border rounded-xl p-4 text-left space-y-3 text-xs">
-                <div className="flex items-center justify-between text-gray-300">
+              <div className="w-full max-w-md bg-slate-50 dark:bg-black border border-gray-200 dark:border-ig-border rounded-xl p-4 text-left space-y-3 text-xs">
+                <div className="flex items-center justify-between text-gray-700 dark:text-gray-300">
                   <span>Current Phase:</span>
                   <span className="font-semibold text-ig-primary uppercase tracking-wider">
                     {status?.phase || "Initializing"}
@@ -326,7 +326,7 @@ export default function UploadDashboard() {
                 </div>
 
                 {status?.total > 0 && (
-                  <div className="w-full bg-ig-surface rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-gray-200 dark:bg-ig-surface rounded-full h-2 overflow-hidden">
                     <div
                       className="bg-ig-primary h-full transition-all duration-300"
                       style={{
@@ -340,15 +340,15 @@ export default function UploadDashboard() {
           )}
         </div>
       ) : (
-        <div className="bg-ig-surface border border-ig-border rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-green-500/10 text-green-400 flex items-center justify-center mb-4 mx-auto">
+        <div className="bg-white dark:bg-ig-surface border border-gray-200 dark:border-ig-border rounded-2xl p-8 text-center shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center mb-4 mx-auto">
             <CheckCircle2 size={36} />
           </div>
 
-          <h2 className="text-2xl font-bold text-white mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Import & Merge Complete!
           </h2>
-          <p className="text-gray-400 text-sm mb-8">
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">
             Your Instagram export data has been parsed and safely synchronized.
           </p>
 

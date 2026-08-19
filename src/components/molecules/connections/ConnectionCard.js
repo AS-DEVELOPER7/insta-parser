@@ -7,16 +7,16 @@ export default function ConnectionCard({ connection, fallbackType = 'follower' }
   const initial = username.charAt(0).toUpperCase();
 
   return (
-    <div className="flex items-center justify-between p-3.5 bg-[#121212] border border-[#1f1f1f] rounded-2xl hover:border-[#333] transition-colors">
+    <div className="flex items-center justify-between p-3.5 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-2xl hover:border-gray-300 dark:hover:border-[#333] transition-colors shadow-sm">
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-10 h-10 rounded-full bg-ig-primary flex items-center justify-center font-bold text-white text-sm uppercase flex-shrink-0 shadow-sm">
           {initial}
         </div>
         <div className="min-w-0">
-          <h4 className="font-semibold text-sm text-white truncate leading-tight">
+          <h4 className="font-semibold text-sm text-gray-900 dark:text-white truncate leading-tight">
             @{username}
           </h4>
-          <span className="text-[11px] text-gray-500 capitalize">
+          <span className="text-[11px] text-gray-500 dark:text-gray-400 capitalize">
             {connection.connection_type || fallbackType}
           </span>
         </div>
@@ -26,7 +26,7 @@ export default function ConnectionCard({ connection, fallbackType = 'follower' }
         href={`https://instagram.com/${username}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-[#1f1f1f] transition-colors flex-shrink-0"
+        className="p-2 rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-colors flex-shrink-0"
         title="View on Instagram"
       >
         <ExternalLink size={16} />

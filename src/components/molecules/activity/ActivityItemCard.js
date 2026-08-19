@@ -5,27 +5,27 @@ import { Search, Link as LinkIcon, ExternalLink } from 'lucide-react';
 export default function ActivityItemCard({ item, type = 'search' }) {
   if (type === 'search') {
     return (
-      <div className="flex items-center justify-between p-3.5 bg-[#121212] border border-[#1f1f1f] rounded-2xl hover:border-[#333] transition-colors">
+      <div className="flex items-center justify-between p-3.5 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-2xl hover:border-gray-300 dark:hover:border-[#333] transition-colors shadow-sm">
         <div className="flex items-center gap-3 min-w-0">
           <Search size={16} className="text-gray-400 flex-shrink-0" />
-          <span className="text-sm font-medium text-white truncate">{item.query}</span>
+          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.query}</span>
         </div>
-        {item.time && <span className="text-xs text-gray-500 flex-shrink-0">{item.time}</span>}
+        {item.time && <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">{item.time}</span>}
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-between p-3.5 bg-[#121212] border border-[#1f1f1f] rounded-2xl hover:border-[#333] transition-colors">
+    <div className="flex items-center justify-between p-3.5 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-2xl hover:border-gray-300 dark:hover:border-[#333] transition-colors shadow-sm">
       <div className="flex items-center gap-3 min-w-0">
         <LinkIcon size={16} className="text-ig-primary flex-shrink-0" />
-        <span className="text-sm font-medium text-white truncate">{item.url}</span>
+        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.url}</span>
       </div>
       <a
         href={item.url}
         target="_blank"
         rel="noreferrer"
-        className="text-gray-400 hover:text-white p-2 rounded-xl transition-colors flex-shrink-0"
+        className="text-gray-400 hover:text-gray-900 dark:hover:text-white p-2 rounded-xl transition-colors flex-shrink-0"
         title="Open link"
       >
         <ExternalLink size={16} />

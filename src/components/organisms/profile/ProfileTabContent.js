@@ -51,44 +51,44 @@ export default function ProfileTabContent({
   return (
     <div>
       {/* Tab Navigation showing TOTAL Counts */}
-      <div className="flex items-center justify-around sm:justify-center sm:gap-12 border-b border-[#1f1f1f] mb-6">
+      <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 border-b border-gray-200 dark:border-[#1f1f1f]">
         <button
           onClick={() => setActiveTab('posts')}
-          className={`flex items-center gap-2 py-3.5 px-4 font-semibold text-xs uppercase tracking-wider transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
             activeTab === 'posts'
-              ? 'border-ig-primary text-white'
-              : 'border-transparent text-gray-500 hover:text-gray-300'
+              ? 'bg-ig-primary text-white shadow-md font-bold'
+              : 'bg-gray-100 dark:bg-[#141414] border border-gray-200 dark:border-[#242424] text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
           title="Posts"
         >
-          <Grid size={20} />
-          <span className="hidden sm:inline">Posts ({posts.length})</span>
+          <Grid size={18} />
+          <span>Posts ({posts.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('stories')}
-          className={`flex items-center gap-2 py-3.5 px-4 font-semibold text-xs uppercase tracking-wider transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
             activeTab === 'stories'
-              ? 'border-ig-primary text-white'
-              : 'border-transparent text-gray-500 hover:text-gray-300'
+              ? 'bg-ig-primary text-white shadow-md font-bold'
+              : 'bg-gray-100 dark:bg-[#141414] border border-gray-200 dark:border-[#242424] text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
           title="Stories"
         >
-          <Film size={20} />
-          <span className="hidden sm:inline">Stories ({stories.length})</span>
+          <Film size={18} />
+          <span>Stories ({stories.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('info')}
-          className={`flex items-center gap-2 py-3.5 px-4 font-semibold text-xs uppercase tracking-wider transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
             activeTab === 'info'
-              ? 'border-ig-primary text-white'
-              : 'border-transparent text-gray-500 hover:text-gray-300'
+              ? 'bg-ig-primary text-white shadow-md font-bold'
+              : 'bg-gray-100 dark:bg-[#141414] border border-gray-200 dark:border-[#242424] text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
           title="Personal Info"
         >
-          <User size={20} />
-          <span className="hidden sm:inline">Personal Info</span>
+          <User size={18} />
+          <span>Personal Info</span>
         </button>
       </div>
 
@@ -114,7 +114,7 @@ export default function ProfileTabContent({
                     <div
                       key={post.id || idx}
                       onClick={() => handleOpenPost(post)}
-                      className="relative aspect-square bg-[#121212] border border-[#1f1f1f] group overflow-hidden cursor-pointer rounded-2xl transition-all hover:scale-[1.02]"
+                      className="relative aspect-square bg-gray-100 dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] group overflow-hidden cursor-pointer rounded-2xl transition-all hover:scale-[1.02] shadow-sm"
                     >
                       {isVideoPost ? (
                         <video src={mediaUrl} className="w-full h-full object-cover" />
@@ -143,13 +143,13 @@ export default function ProfileTabContent({
               {/* Load More Indicator / Progress */}
               {postsLimit < posts.length && (
                 <div className="flex flex-col items-center justify-center py-8 gap-3">
-                  <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
                     <Loader2 size={16} className="animate-spin text-ig-primary" />
                     <span>Showing {visiblePosts.length} of {posts.length} posts (scroll to load more)</span>
                   </div>
                   <button
                     onClick={() => setPostsLimit((prev) => Math.min(prev + BATCH_SIZE, posts.length))}
-                    className="px-4 py-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] text-xs font-semibold text-gray-200 rounded-xl border border-[#333] transition-colors"
+                    className="px-4 py-2 bg-gray-100 dark:bg-[#1f1f1f] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] text-xs font-semibold text-gray-800 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-[#333] transition-colors"
                   >
                     Load More Posts
                   </button>
@@ -157,9 +157,9 @@ export default function ProfileTabContent({
               )}
             </>
           ) : (
-            <div className="text-center py-16 bg-[#121212] border border-[#1f1f1f] rounded-3xl p-8">
-              <Grid size={32} className="mx-auto text-gray-600 mb-3" />
-              <h3 className="text-sm font-semibold text-gray-300">No Posts Displayed</h3>
+            <div className="text-center py-16 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-3xl p-8 shadow-sm">
+              <Grid size={32} className="mx-auto text-gray-400 dark:text-gray-600 mb-3" />
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-300">No Posts Displayed</h3>
               <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
                 Your uploaded posts will appear here.
               </p>
@@ -187,7 +187,7 @@ export default function ProfileTabContent({
                     <div
                       key={story.id || idx}
                       onClick={() => handleOpenPost({ post_media: [{ media_url: mediaUrl, media_type: story.media_type }] })}
-                      className="relative aspect-[9/16] bg-[#121212] border border-[#1f1f1f] group overflow-hidden cursor-pointer rounded-2xl transition-all hover:scale-[1.02]"
+                      className="relative aspect-[9/16] bg-gray-100 dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] group overflow-hidden cursor-pointer rounded-2xl transition-all hover:scale-[1.02] shadow-sm"
                     >
                       {isVideoStory ? (
                         <video src={mediaUrl} className="w-full h-full object-cover" />
@@ -205,13 +205,13 @@ export default function ProfileTabContent({
               {/* Load More Indicator / Progress */}
               {storiesLimit < stories.length && (
                 <div className="flex flex-col items-center justify-center py-8 gap-3">
-                  <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
                     <Loader2 size={16} className="animate-spin text-ig-primary" />
                     <span>Showing {visibleStories.length} of {stories.length} stories (scroll to load more)</span>
                   </div>
                   <button
                     onClick={() => setStoriesLimit((prev) => Math.min(prev + BATCH_SIZE, stories.length))}
-                    className="px-4 py-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] text-xs font-semibold text-gray-200 rounded-xl border border-[#333] transition-colors"
+                    className="px-4 py-2 bg-gray-100 dark:bg-[#1f1f1f] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] text-xs font-semibold text-gray-800 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-[#333] transition-colors"
                   >
                     Load More Stories
                   </button>
@@ -219,9 +219,9 @@ export default function ProfileTabContent({
               )}
             </>
           ) : (
-            <div className="text-center py-16 bg-[#121212] border border-[#1f1f1f] rounded-3xl p-8">
-              <Film size={32} className="mx-auto text-gray-600 mb-3" />
-              <h3 className="text-sm font-semibold text-gray-300">No Stories Available</h3>
+            <div className="text-center py-16 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-3xl p-8 shadow-sm">
+              <Film size={32} className="mx-auto text-gray-400 dark:text-gray-600 mb-3" />
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-300">No Stories Available</h3>
               <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
                 Stories extracted from your export archive will show here.
               </p>
@@ -245,12 +245,12 @@ export default function ProfileTabContent({
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setSelectedPost(null)}>
           <button
             onClick={() => setSelectedPost(null)}
-            className="absolute top-4 right-4 p-2 bg-[#222] text-white rounded-full hover:bg-[#333] transition-colors z-50"
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-50"
           >
             <X size={20} />
           </button>
 
-          <div onClick={(e) => e.stopPropagation()} className="relative max-w-2xl max-h-[85vh] w-full overflow-hidden rounded-2xl bg-black border border-[#262626]">
+          <div onClick={(e) => e.stopPropagation()} className="relative max-w-2xl max-h-[85vh] w-full overflow-hidden rounded-2xl bg-white dark:bg-black border border-gray-200 dark:border-[#262626] shadow-2xl">
             {/* Carousel Navigation Arrows */}
             {mediaList.length > 1 && (
               <>
@@ -292,13 +292,13 @@ export default function ProfileTabContent({
 
             {/* Dots Indicator */}
             {mediaList.length > 1 && (
-              <div className="flex items-center justify-center gap-1.5 py-2.5 bg-[#121212] border-t border-[#1f1f1f]">
+              <div className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 dark:bg-[#121212] border-t border-gray-200 dark:border-[#1f1f1f]">
                 {mediaList.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentMediaIndex(i)}
                     className={`w-2 h-2 rounded-full transition-all ${
-                      i === currentMediaIndex ? 'bg-ig-primary w-4' : 'bg-gray-600 hover:bg-gray-400'
+                      i === currentMediaIndex ? 'bg-ig-primary w-4' : 'bg-gray-400 dark:bg-gray-600 hover:bg-gray-500'
                     }`}
                   />
                 ))}
@@ -307,7 +307,7 @@ export default function ProfileTabContent({
 
             {/* Caption Footer */}
             {selectedPost.caption && (
-              <p className="p-4 text-xs text-gray-300 bg-[#121212] border-t border-[#1f1f1f] max-h-28 overflow-y-auto leading-relaxed">
+              <p className="p-4 text-xs text-gray-800 dark:text-gray-300 bg-gray-50 dark:bg-[#121212] border-t border-gray-200 dark:border-[#1f1f1f] max-h-28 overflow-y-auto leading-relaxed">
                 {selectedPost.caption}
               </p>
             )}

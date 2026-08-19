@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import ChatMediaGallery from "@/components/organisms/direct/ChatMediaGallery";
 import ChatSearchOverlay from "@/components/organisms/direct/ChatSearchOverlay";
+import MediaLightboxModal from "@/components/molecules/media/MediaLightboxModal";
 import MessageBubble from "@/components/molecules/MessageBubble";
 import EmptyChatState from "@/components/molecules/direct/EmptyChatState";
 import Skeleton from "@/components/atoms/Skeleton";
@@ -80,6 +81,7 @@ export default function ChatWindow({
 }) {
   const [showGallery, setShowGallery] = useState(false);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -106,9 +108,8 @@ export default function ChatWindow({
   const [triggerSearch, { isFetching: isSearching }] =
     useLazySearchMessagesQuery();
 
-  // Active messages list (prefer internally loaded paginated messages, fallback to prop)
-  const messages =
-    loadedMessages.length > 0 ? loadedMessages : initialPropMessages;
+  // Active messages list for current conversation (strictly loadedMessages)
+  const messages = loadedMessages;
   const isLoading =
     isLoadingInitial || (loadedMessages.length === 0 && isPropLoading);
 
@@ -117,7 +118,26 @@ export default function ChatWindow({
     const groups = [];
     let currentGroup = null;
 
-    messages.forEach((msg) => {
+    // Deduplicate messages by ID and content signature before rendering
+    const seenIds = new Set();
+    const seenFp = new Set();
+    const cleanMsgs = [];
+
+    for (const msg of messages) {
+      if (!msg) continue;
+      const idKey = msg.id || `${msg.sender_name}_${msg.sent_at}_${msg.content}`;
+      const timeMs = msg.sent_at ? new Date(msg.sent_at).getTime() : 0;
+      const sec = Math.floor(timeMs / 1000);
+      const fpKey = `${msg.sender_name}_${sec}_${(msg.content || '').trim().toLowerCase()}_${msg.media_url || msg.share_url || ''}`;
+
+      if (!seenIds.has(idKey) && !seenFp.has(fpKey)) {
+        seenIds.add(idKey);
+        seenFp.add(fpKey);
+        cleanMsgs.push(msg);
+      }
+    }
+
+    cleanMsgs.forEach((msg) => {
       const dateKey = msg.sent_at
         ? new Date(msg.sent_at).toDateString()
         : "unknown";
@@ -196,14 +216,19 @@ export default function ChatWindow({
 
   const isInitialLoadRef = useRef(true);
 
+  const [loadError, setLoadError] = useState(null);
+
   // Initial load when active conversation changes
   useEffect(() => {
     isInitialLoadRef.current = true;
+    setLoadedMessages([]);
+    setLoadError(null);
+
     if (!activeConv?.id) {
-      setLoadedMessages([]);
       setHasMoreOlder(true);
       setHasMoreNewer(false);
       setTotalCount(0);
+      setIsLoadingInitial(false);
       return;
     }
 
@@ -231,6 +256,10 @@ export default function ChatWindow({
       })
       .catch((err) => {
         console.error("Error loading initial messages:", err);
+        if (isMounted) {
+          setLoadError(err?.data?.error || err?.message || "Failed to load messages");
+          setLoadedMessages([]);
+        }
       })
       .finally(() => {
         if (isMounted) setIsLoadingInitial(false);
@@ -269,16 +298,30 @@ export default function ChatWindow({
           const newChunk = res.messages || [];
           if (newChunk.length > 0) {
             setLoadedMessages((prev) => {
-              const existingIds = new Set(prev.map((m) => m.id));
-              const filteredNew = newChunk.filter(
-                (m) => !existingIds.has(m.id),
-              );
-              return [...filteredNew, ...prev];
+              const combined = [...newChunk, ...prev];
+              const seenIds = new Set();
+              const seenFp = new Set();
+              const unique = [];
+              for (const m of combined) {
+                if (!m || !m.id) continue;
+                const timeMs = m.sent_at ? new Date(m.sent_at).getTime() : 0;
+                const sec = Math.floor(timeMs / 1000);
+                const fp = `${m.sender_name}_${sec}_${(m.content || '').trim().toLowerCase()}_${m.media_url || m.share_url || ''}`;
+                if (!seenIds.has(m.id) && !seenFp.has(fp)) {
+                  seenIds.add(m.id);
+                  seenFp.add(fp);
+                  unique.push(m);
+                }
+              }
+              unique.sort((a, b) => {
+                const tA = new Date(a.sent_at).getTime();
+                const tB = new Date(b.sent_at).getTime();
+                if (tA !== tB) return tA - tB;
+                return (a.id || '').localeCompare(b.id || '');
+              });
+              return unique;
             });
-            setHasMoreOlder(
-              res.hasMoreOlder ??
-                newChunk.length === PAGINATION_LIMITS.MESSAGES_SCROLL_UP,
-            );
+            setHasMoreOlder(res.hasMoreOlder ?? true);
           } else {
             setHasMoreOlder(false);
           }
@@ -311,16 +354,30 @@ export default function ChatWindow({
           const newChunk = res.messages || [];
           if (newChunk.length > 0) {
             setLoadedMessages((prev) => {
-              const existingIds = new Set(prev.map((m) => m.id));
-              const filteredNew = newChunk.filter(
-                (m) => !existingIds.has(m.id),
-              );
-              return [...prev, ...filteredNew];
+              const combined = [...prev, ...newChunk];
+              const seenIds = new Set();
+              const seenFp = new Set();
+              const unique = [];
+              for (const m of combined) {
+                if (!m || !m.id) continue;
+                const timeMs = m.sent_at ? new Date(m.sent_at).getTime() : 0;
+                const sec = Math.floor(timeMs / 1000);
+                const fp = `${m.sender_name}_${sec}_${(m.content || '').trim().toLowerCase()}_${m.media_url || m.share_url || ''}`;
+                if (!seenIds.has(m.id) && !seenFp.has(fp)) {
+                  seenIds.add(m.id);
+                  seenFp.add(fp);
+                  unique.push(m);
+                }
+              }
+              unique.sort((a, b) => {
+                const tA = new Date(a.sent_at).getTime();
+                const tB = new Date(b.sent_at).getTime();
+                if (tA !== tB) return tA - tB;
+                return (a.id || '').localeCompare(b.id || '');
+              });
+              return unique;
             });
-            setHasMoreNewer(
-              res.hasMoreNewer ??
-                newChunk.length === PAGINATION_LIMITS.MESSAGES_SCROLL_DOWN,
-            );
+            setHasMoreNewer(res.hasMoreNewer ?? true);
           } else {
             setHasMoreNewer(false);
           }
@@ -466,21 +523,21 @@ export default function ChatWindow({
 
   if (!activeConv) {
     return (
-      <div className="flex-1 flex flex-col bg-[#0d0d0d]">
+      <div className="flex-1 flex flex-col bg-white dark:bg-[#0d0d0d]">
         <EmptyChatState />
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0d0d0d] relative overflow-hidden min-w-0">
+    <div className="flex-1 flex flex-col bg-white dark:bg-[#0d0d0d] relative overflow-hidden min-w-0">
       {/* ── Top Header ── */}
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#1f1f1f] bg-[#0d0d0d] flex-shrink-0 z-10">
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-200 dark:border-[#1f1f1f] bg-white dark:bg-[#0d0d0d] flex-shrink-0 z-10">
         {/* Mobile Back Button */}
         {onBack && (
           <button
             onClick={onBack}
-            className="md:hidden w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-[#1a1a1a] transition-colors -ml-1 mr-1 flex-shrink-0"
+            className="md:hidden w-8 h-8 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors -ml-1 mr-1 flex-shrink-0"
             title="Back to conversations"
           >
             <ArrowLeft size={18} />
@@ -494,10 +551,10 @@ export default function ChatWindow({
 
         {/* Name */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm text-white truncate leading-tight">
+          <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate leading-tight">
             {activeConv.participant_name}
           </h3>
-          <span className="text-[11px] text-gray-500">
+          <span className="text-[11px] text-gray-500 dark:text-gray-400">
             {totalCount > 0
               ? `${totalCount.toLocaleString()} messages`
               : "Instagram Archive"}
@@ -512,7 +569,7 @@ export default function ChatWindow({
             className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
               showSearchOverlay
                 ? "bg-ig-primary/20 text-ig-primary"
-                : "text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
             }`}
             title="Search in conversation"
           >
@@ -525,7 +582,7 @@ export default function ChatWindow({
             className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold transition-colors border ${
               showGallery
                 ? "bg-ig-primary/20 border-ig-primary/40 text-ig-primary"
-                : "bg-[#1a1a1a] border-[#2a2a2a] text-gray-300 hover:text-white hover:border-[#3a3a3a]"
+                : "bg-gray-100 dark:bg-[#1a1a1a] border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-[#3a3a3a]"
             }`}
             title="View shared media"
           >
@@ -542,15 +599,15 @@ export default function ChatWindow({
 
       {/* ── Server Search Bar ── */}
       {searchOpen && (
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-[#111] border-b border-[#1f1f1f] flex-shrink-0">
-          <Search size={14} className="text-gray-500 flex-shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-100 dark:bg-[#111] border-b border-gray-200 dark:border-[#1f1f1f] flex-shrink-0">
+          <Search size={14} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
           <input
             ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search all historical messages…"
-            className="flex-1 bg-transparent text-sm text-white placeholder-gray-500 outline-none"
+            className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
           />
 
           {isSearching ? (
@@ -560,14 +617,14 @@ export default function ChatWindow({
             />
           ) : searchQuery ? (
             <>
-              <span className="text-[11px] text-gray-400 flex-shrink-0">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">
                 {searchResults.length > 0
                   ? `${matchIndex + 1} of ${searchResults.length}`
                   : "No matches"}
               </span>
               <button
                 onClick={handlePrevMatch}
-                className="text-gray-400 hover:text-white disabled:opacity-30"
+                className="text-gray-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-30"
                 disabled={searchResults.length === 0}
                 title="Previous match"
               >
@@ -575,7 +632,7 @@ export default function ChatWindow({
               </button>
               <button
                 onClick={handleNextMatch}
-                className="text-gray-400 hover:text-white disabled:opacity-30"
+                className="text-gray-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-30"
                 disabled={searchResults.length === 0}
                 title="Next match"
               >
@@ -586,7 +643,7 @@ export default function ChatWindow({
 
           <button
             onClick={handleSearchClose}
-            className="text-gray-500 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <X size={16} />
           </button>
@@ -601,6 +658,34 @@ export default function ChatWindow({
           <Skeleton className="h-10 w-52 rounded-2xl" />
           <Skeleton className="h-10 w-64 rounded-2xl ml-auto" />
         </div>
+      ) : loadError ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mb-3">
+            <X size={24} />
+          </div>
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Failed to load conversation</h4>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xs">{loadError}</p>
+          <button
+            onClick={() => {
+              setLoadError(null);
+              setIsLoadingInitial(true);
+              triggerGetMessages(
+                { conversationId: activeConv.id, limit: PAGINATION_LIMITS.MESSAGES_DEFAULT },
+                true
+              )
+                .unwrap()
+                .then((res) => {
+                  setLoadedMessages(res.messages || []);
+                  setHasMoreOlder(res.hasMoreOlder ?? false);
+                })
+                .catch((e) => setLoadError(e?.data?.error || 'Failed to load messages'))
+                .finally(() => setIsLoadingInitial(false));
+            }}
+            className="mt-4 px-4 py-2 bg-gray-200 dark:bg-[#222] hover:bg-gray-300 dark:hover:bg-[#333] border border-gray-300 dark:border-[#333] text-gray-900 dark:text-white text-xs font-semibold rounded-xl transition-colors"
+          >
+            Retry Loading
+          </button>
+        </div>
       ) : (
         <div
           ref={scrollContainerRef}
@@ -610,20 +695,20 @@ export default function ChatWindow({
           {/* Top indicator: Older messages loading / status */}
           {isLoadingOlder ? (
             <div className="flex justify-center py-2">
-              <span className="flex items-center gap-2 text-[11px] text-gray-400 bg-[#161616] px-3 py-1.5 rounded-full border border-[#262626]">
+              <span className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-[#161616] px-3 py-1.5 rounded-full border border-gray-200 dark:border-[#262626]">
                 <Loader2 size={13} className="animate-spin text-ig-primary" />
                 Loading older messages…
               </span>
             </div>
           ) : hasMoreOlder ? (
             <div className="text-center py-2">
-              <span className="text-[10px] text-gray-500 bg-[#161616] px-2.5 py-1 rounded-full border border-[#262626]">
+              <span className="text-[10px] text-gray-600 dark:text-gray-500 bg-gray-100 dark:bg-[#161616] px-2.5 py-1 rounded-full border border-gray-200 dark:border-[#262626]">
                 Scroll up to load older messages ({messages.length} loaded)
               </span>
             </div>
           ) : messages.length > 0 ? (
             <div className="text-center py-2">
-              <span className="text-[10px] text-gray-600">
+              <span className="text-[10px] text-gray-500 dark:text-gray-600">
                 Beginning of conversation history
               </span>
             </div>
@@ -633,7 +718,7 @@ export default function ChatWindow({
           {dateGroups.map((group) => (
             <div key={group.dateKey} className="relative space-y-3">
               <div className="sticky top-2 z-20 flex justify-center py-1.5 pointer-events-none">
-                <span className="text-[11px] font-semibold text-gray-200 bg-[#161616]/95 backdrop-blur-md border border-[#2a2a2a] px-3.5 py-1 rounded-full shadow-md pointer-events-auto">
+                <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 bg-white/95 dark:bg-[#161616]/95 backdrop-blur-md border border-gray-200 dark:border-[#2a2a2a] px-3.5 py-1 rounded-full shadow-sm pointer-events-auto">
                   {formatDateSeparator(group.firstSentAt)}
                 </span>
               </div>
@@ -659,6 +744,7 @@ export default function ChatWindow({
                       message={msg}
                       isMe={isMe}
                       highlight={searchQuery || undefined}
+                      onMediaClick={(lightboxData) => setLightbox(lightboxData)}
                     />
                   </div>
                 );
@@ -708,6 +794,8 @@ export default function ChatWindow({
           onClose={() => setShowSearchOverlay(false)}
         />
       )}
+      {/* ── Lightbox Modal for direct media preview ── */}
+      <MediaLightboxModal lightbox={lightbox} onClose={() => setLightbox(null)} />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   Sliders,
   UploadCloud,
   User,
+  Settings,
   LogOut,
   Instagram,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ export default function Sidebar({ userProfile }) {
     { label: 'Logged Activity', href: '/activity-log', icon: History },
     { label: 'Preferences',     href: '/preferences',  icon: Sliders },
     { label: 'Profile',         href: '/profile',       icon: User },
+    { label: 'Settings',        href: '/settings',      icon: Settings },
     { label: 'Upload Archive',  href: '/upload',       icon: UploadCloud, highlight: true },
   ];
 
@@ -44,7 +46,7 @@ export default function Sidebar({ userProfile }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{ width: hovered ? 240 : 72 }}
-      className="hidden md:flex flex-col fixed left-0 top-0 h-screen border-r border-ig-border bg-black z-40 transition-[width] duration-200 ease-in-out overflow-hidden"
+      className="hidden md:flex flex-col fixed left-0 top-0 h-screen border-r border-gray-200 dark:border-[#262626] bg-white dark:bg-black z-40 transition-[width] duration-200 ease-in-out overflow-hidden"
     >
       {/* Brand */}
       <Link
@@ -57,7 +59,7 @@ export default function Sidebar({ userProfile }) {
           <Instagram size={20} />
         </div>
         <span
-          className={`font-bold text-lg tracking-tight text-white font-sans whitespace-nowrap overflow-hidden transition-all duration-200 ${
+          className={`font-bold text-lg tracking-tight text-gray-900 dark:text-white font-sans whitespace-nowrap overflow-hidden transition-all duration-200 ${
             hovered ? 'max-w-[160px] opacity-100' : 'max-w-0 opacity-0'
           }`}
         >
@@ -80,10 +82,10 @@ export default function Sidebar({ userProfile }) {
                 hovered ? 'gap-4 px-3 justify-start' : 'justify-center px-0'
               } ${
                 isActive
-                  ? 'bg-ig-surface text-white font-semibold'
+                  ? 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-900 dark:text-white font-semibold'
                   : item.highlight
-                  ? 'text-ig-primary hover:bg-ig-surface/60 font-semibold'
-                  : 'text-gray-300 hover:bg-ig-surface hover:text-white'
+                  ? 'text-ig-primary hover:bg-gray-100 dark:hover:bg-[#181818] font-semibold'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#181818] hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               <Icon
@@ -103,7 +105,7 @@ export default function Sidebar({ userProfile }) {
       </nav>
 
       {/* Logout */}
-      <div className="px-2 py-3 border-t border-ig-border flex-shrink-0">
+      <div className="px-2 py-3 border-t border-gray-200 dark:border-[#262626] flex-shrink-0">
         <button
           onClick={handleLogout}
           title={!hovered ? 'Log out' : undefined}

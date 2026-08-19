@@ -139,3 +139,52 @@ export async function GET() {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function PUT(request) {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { username, full_name, bio, preferences } = body;
+
+    const updates = {};
+    if (typeof username === 'string' && username.trim()) updates.username = username.trim().toLowerCase();
+    if (typeof full_name === 'string') updates.full_name = full_name.trim();
+    if (typeof bio === 'string') updates.bio = bio.trim();
+
+    if (preferences) {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('preferences')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const currentPrefs = existing?.preferences || {};
+      updates.preferences = { ...currentPrefs, ...preferences };
+    }
+
+    const { data: updatedProfile, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', user.id)
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      console.error('Profile update error:', error);
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, profile: updatedProfile });
+  } catch (err) {
+    console.error('Profile update exception:', err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

@@ -44,15 +44,16 @@ export async function GET(request) {
       console.error('Error counting messages:', countError);
     }
 
-    // 1. Fetching older messages before a specific timestamp
+    // 1. Fetching older messages before/at a specific timestamp
     if (beforeDate) {
       const { data: chunk, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .lt('sent_at', beforeDate)
+        .lte('sent_at', beforeDate)
         .order('sent_at', { ascending: false })
-        .limit(limit);
+        .order('id', { ascending: false })
+        .limit(limit + 5);
 
       if (error) {
         console.error('Error fetching older messages:', error);
@@ -60,22 +61,36 @@ export async function GET(request) {
       }
 
       const messages = (chunk || []).reverse();
+
+      // Check if there are any remaining messages older than the earliest returned message
+      let hasMoreOlder = false;
+      if (messages.length > 0) {
+        const earliestSentAt = messages[0].sent_at;
+        const { count: olderCount } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conversationId)
+          .lt('sent_at', earliestSentAt);
+        hasMoreOlder = (olderCount || 0) > 0;
+      }
+
       return NextResponse.json({
         messages,
         totalCount: totalCount || 0,
-        hasMoreOlder: chunk ? chunk.length === limit : false,
+        hasMoreOlder,
       });
     }
 
-    // 2. Fetching newer messages after a specific timestamp
+    // 2. Fetching newer messages after/at a specific timestamp
     if (afterDate) {
       const { data: chunk, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .gt('sent_at', afterDate)
+        .gte('sent_at', afterDate)
         .order('sent_at', { ascending: true })
-        .limit(limit);
+        .order('id', { ascending: true })
+        .limit(limit + 5);
 
       if (error) {
         console.error('Error fetching newer messages:', error);
@@ -83,10 +98,23 @@ export async function GET(request) {
       }
 
       const messages = chunk || [];
+
+      // Check if there are any remaining messages newer than the latest returned message
+      let hasMoreNewer = false;
+      if (messages.length > 0) {
+        const latestSentAt = messages[messages.length - 1].sent_at;
+        const { count: newerCount } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conversationId)
+          .gt('sent_at', latestSentAt);
+        hasMoreNewer = (newerCount || 0) > 0;
+      }
+
       return NextResponse.json({
         messages,
         totalCount: totalCount || 0,
-        hasMoreNewer: chunk ? chunk.length === limit : false,
+        hasMoreNewer,
       });
     }
 
@@ -100,7 +128,7 @@ export async function GET(request) {
 
       if (!targetError && targetMsg) {
         const halfWindow = Math.floor(limit / 2);
-        
+
         // Fetch older & current messages up to targetMsg
         const { data: olderChunk } = await supabase
           .from('messages')
@@ -108,28 +136,72 @@ export async function GET(request) {
           .eq('conversation_id', conversationId)
           .lte('sent_at', targetMsg.sent_at)
           .order('sent_at', { ascending: false })
-          .limit(halfWindow);
+          .order('id', { ascending: false })
+          .limit(halfWindow + 5);
 
-        // Fetch newer messages after targetMsg
+        // Fetch newer messages at/after targetMsg
         const { data: newerChunk } = await supabase
           .from('messages')
           .select('*')
           .eq('conversation_id', conversationId)
-          .gt('sent_at', targetMsg.sent_at)
+          .gte('sent_at', targetMsg.sent_at)
           .order('sent_at', { ascending: true })
-          .limit(halfWindow);
+          .order('id', { ascending: true })
+          .limit(halfWindow + 5);
 
-        const combined = [
+        // Combine and deduplicate
+        const seenIds = new Set();
+        const combined = [];
+
+        const rawList = [
           ...(olderChunk || []).reverse(),
-          ...(newerChunk || [])
+          ...(newerChunk || []),
         ];
+
+        for (const m of rawList) {
+          if (!seenIds.has(m.id)) {
+            seenIds.add(m.id);
+            combined.push(m);
+          }
+        }
+
+        combined.sort((a, b) => {
+          const tA = new Date(a.sent_at).getTime();
+          const tB = new Date(b.sent_at).getTime();
+          if (tA !== tB) return tA - tB;
+          return (a.id || '').localeCompare(b.id || '');
+        });
+
+        // Determine if there are further older/newer messages outside this window
+        let hasMoreOlder = false;
+        let hasMoreNewer = false;
+
+        if (combined.length > 0) {
+          const firstMsgSentAt = combined[0].sent_at;
+          const lastMsgSentAt = combined[combined.length - 1].sent_at;
+
+          const { count: olderCount } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('conversation_id', conversationId)
+            .lt('sent_at', firstMsgSentAt);
+
+          const { count: newerCount } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('conversation_id', conversationId)
+            .gt('sent_at', lastMsgSentAt);
+
+          hasMoreOlder = (olderCount || 0) > 0;
+          hasMoreNewer = (newerCount || 0) > 0;
+        }
 
         return NextResponse.json({
           messages: combined,
           totalCount: totalCount || combined.length,
-          hasMoreOlder: olderChunk ? olderChunk.length === halfWindow : false,
-          hasMoreNewer: newerChunk ? newerChunk.length === halfWindow : false,
-          targetId: aroundId
+          hasMoreOlder,
+          hasMoreNewer,
+          targetId: aroundId,
         });
       }
     }
@@ -140,6 +212,7 @@ export async function GET(request) {
       .select('*')
       .eq('conversation_id', conversationId)
       .order('sent_at', { ascending: false })
+      .order('id', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {

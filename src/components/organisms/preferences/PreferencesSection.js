@@ -74,23 +74,23 @@ export default function PreferencesSection({
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
           <Sliders size={26} className="text-ig-primary" />
           <span>Account Preferences & Ad Settings</span>
         </h1>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
           Viewed ads, uninterested profiles, and privacy preferences parsed from your export archive.
         </p>
       </div>
 
       {/* Filter Tabs showing TOTAL counts */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none border-b border-[#1f1f1f]">
+      <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none border-b border-gray-200 dark:border-[#1f1f1f]">
         <button
           onClick={() => setActiveTab('ads_viewed')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'ads_viewed'
               ? 'bg-ig-primary text-white shadow-lg shadow-ig-primary/20'
-              : 'bg-[#121212] text-gray-400 hover:text-white hover:bg-[#181818] border border-[#1f1f1f]'
+              : 'bg-white dark:bg-[#121212] text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#181818] border border-gray-200 dark:border-[#1f1f1f]'
           }`}
         >
           <Tv size={15} />
@@ -102,7 +102,7 @@ export default function PreferencesSection({
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'not_interested'
               ? 'bg-ig-primary text-white shadow-lg shadow-ig-primary/20'
-              : 'bg-[#121212] text-gray-400 hover:text-white hover:bg-[#181818] border border-[#1f1f1f]'
+              : 'bg-white dark:bg-[#121212] text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#181818] border border-gray-200 dark:border-[#1f1f1f]'
           }`}
         >
           <UserX size={15} />
@@ -114,7 +114,7 @@ export default function PreferencesSection({
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'ad_prefs'
               ? 'bg-ig-primary text-white shadow-lg shadow-ig-primary/20'
-              : 'bg-[#121212] text-gray-400 hover:text-white hover:bg-[#181818] border border-[#1f1f1f]'
+              : 'bg-white dark:bg-[#121212] text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#181818] border border-gray-200 dark:border-[#1f1f1f]'
           }`}
         >
           <ShieldAlert size={15} />
@@ -134,7 +134,7 @@ export default function PreferencesSection({
           {/* TAB 1: Ads Viewed */}
           {activeTab === 'ads_viewed' && (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#121212] border border-[#1f1f1f] p-4 rounded-2xl">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] p-4 rounded-2xl shadow-sm">
                 <div className="relative w-full sm:w-72">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
@@ -142,11 +142,11 @@ export default function PreferencesSection({
                     placeholder="Search viewed ads..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#181818] border border-[#262626] rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-ig-primary"
+                    className="w-full bg-slate-50 dark:bg-[#181818] border border-gray-200 dark:border-[#262626] rounded-xl pl-9 pr-4 py-2 text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-ig-primary"
                   />
                 </div>
-                <div className="text-xs text-gray-400 font-semibold">
-                  Showing <span className="text-white">{visibleAds.length}</span> of {filteredAdsViewed.length} viewed ads
+                <div className="text-xs text-gray-600 dark:text-gray-400 font-semibold">
+                  Showing <span className="text-gray-900 dark:text-white">{visibleAds.length}</span> of {filteredAdsViewed.length} viewed ads
                 </div>
               </div>
 
@@ -160,13 +160,13 @@ export default function PreferencesSection({
 
                   {adsLimit < filteredAdsViewed.length && (
                     <div className="flex flex-col items-center justify-center py-8 gap-3">
-                      <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
                         <Loader2 size={16} className="animate-spin text-ig-primary" />
                         <span>Showing {visibleAds.length} of {filteredAdsViewed.length} viewed ads (scroll to load more)</span>
                       </div>
                       <button
                         onClick={() => setAdsLimit((prev) => Math.min(prev + BATCH_SIZE, filteredAdsViewed.length))}
-                        className="px-4 py-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] text-xs font-semibold text-gray-200 rounded-xl border border-[#333] transition-colors"
+                        className="px-4 py-2 bg-gray-100 dark:bg-[#1f1f1f] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] text-xs font-semibold text-gray-800 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-[#333] transition-colors"
                       >
                         Load More Ads
                       </button>
@@ -174,9 +174,9 @@ export default function PreferencesSection({
                   )}
                 </>
               ) : (
-                <div className="text-center py-12 bg-[#121212] border border-[#1f1f1f] rounded-2xl p-6">
-                  <Tv size={32} className="mx-auto text-gray-600 mb-2" />
-                  <p className="text-xs text-gray-400">No viewed ads matched your query.</p>
+                <div className="text-center py-12 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-2xl p-6 shadow-sm">
+                  <Tv size={32} className="mx-auto text-gray-400 dark:text-gray-600 mb-2" />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">No viewed ads matched your query.</p>
                 </div>
               )}
             </div>
@@ -195,13 +195,13 @@ export default function PreferencesSection({
 
                   {notInterestedLimit < profilesNotInterested.length && (
                     <div className="flex flex-col items-center justify-center py-8 gap-3">
-                      <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
                         <Loader2 size={16} className="animate-spin text-ig-primary" />
                         <span>Showing {visibleNotInterested.length} of {profilesNotInterested.length} profiles</span>
                       </div>
                       <button
                         onClick={() => setNotInterestedLimit((prev) => Math.min(prev + BATCH_SIZE, profilesNotInterested.length))}
-                        className="px-4 py-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] text-xs font-semibold text-gray-200 rounded-xl border border-[#333] transition-colors"
+                        className="px-4 py-2 bg-gray-100 dark:bg-[#1f1f1f] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] text-xs font-semibold text-gray-800 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-[#333] transition-colors"
                       >
                         Load More Profiles
                       </button>
@@ -209,9 +209,9 @@ export default function PreferencesSection({
                   )}
                 </>
               ) : (
-                <div className="text-center py-12 bg-[#121212] border border-[#1f1f1f] rounded-2xl p-6">
-                  <UserX size={32} className="mx-auto text-gray-600 mb-2" />
-                  <p className="text-xs text-gray-400">No uninterested profile records found.</p>
+                <div className="text-center py-12 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-2xl p-6 shadow-sm">
+                  <UserX size={32} className="mx-auto text-gray-400 dark:text-gray-600 mb-2" />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">No uninterested profile records found.</p>
                 </div>
               )}
             </div>
@@ -226,20 +226,20 @@ export default function PreferencesSection({
                     {visibleAdPrefs.map((pref, idx) => (
                       <div
                         key={idx}
-                        className="bg-[#121212] border border-[#1f1f1f] p-4 rounded-2xl flex items-center justify-between gap-3"
+                        className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] p-4 rounded-2xl flex items-center justify-between gap-3 shadow-sm"
                       >
                         <div className="flex items-center gap-3.5 min-w-0">
-                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
                             <ShieldAlert size={18} />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-md">
+                              <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-md">
                                 {pref.event}
                               </span>
                               <span className="text-[10px] text-gray-500">{formatDate(pref.timestamp)}</span>
                             </div>
-                            <h4 className="text-xs font-semibold text-gray-200 mt-1 truncate max-w-md">
+                            <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-200 mt-1 truncate max-w-md">
                               {pref.adTitle || 'Ad preference update'}
                             </h4>
                           </div>
@@ -250,13 +250,13 @@ export default function PreferencesSection({
 
                   {adPrefsLimit < adPreferences.length && (
                     <div className="flex flex-col items-center justify-center py-8 gap-3">
-                      <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
                         <Loader2 size={16} className="animate-spin text-ig-primary" />
                         <span>Showing {visibleAdPrefs.length} of {adPreferences.length} ad preferences</span>
                       </div>
                       <button
                         onClick={() => setAdPrefsLimit((prev) => Math.min(prev + BATCH_SIZE, adPreferences.length))}
-                        className="px-4 py-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] text-xs font-semibold text-gray-200 rounded-xl border border-[#333] transition-colors"
+                        className="px-4 py-2 bg-gray-100 dark:bg-[#1f1f1f] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] text-xs font-semibold text-gray-800 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-[#333] transition-colors"
                       >
                         Load More Preferences
                       </button>
@@ -264,9 +264,9 @@ export default function PreferencesSection({
                   )}
                 </>
               ) : (
-                <div className="text-center py-12 bg-[#121212] border border-[#1f1f1f] rounded-2xl p-6">
-                  <ShieldAlert size={32} className="mx-auto text-gray-600 mb-2" />
-                  <p className="text-xs text-gray-400">No ad preference modifications logged.</p>
+                <div className="text-center py-12 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-2xl p-6 shadow-sm">
+                  <ShieldAlert size={32} className="mx-auto text-gray-400 dark:text-gray-600 mb-2" />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">No ad preference modifications logged.</p>
                 </div>
               )}
             </div>

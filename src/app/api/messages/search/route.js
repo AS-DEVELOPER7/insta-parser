@@ -43,9 +43,32 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Deduplicate search results (combining timezone-shifted duplicates)
+    const uniqueMatches = [];
+    const keptMap = new Map();
+
+    for (const msg of matches || []) {
+      const cleanContent = (msg.content || "").trim().toLowerCase();
+      const mediaKey = msg.media_url || "";
+      const sig = `${msg.sender_name}::${cleanContent || mediaKey}`;
+      const timeMs = msg.sent_at ? new Date(msg.sent_at).getTime() : 0;
+
+      if (!keptMap.has(sig)) {
+        keptMap.set(sig, [timeMs]);
+        uniqueMatches.push(msg);
+      } else {
+        const times = keptMap.get(sig);
+        const isDup = times.some((t) => Math.abs(timeMs - t) / (1000 * 3600) <= 36);
+        if (!isDup) {
+          times.push(timeMs);
+          uniqueMatches.push(msg);
+        }
+      }
+    }
+
     return NextResponse.json({
-      matches: matches || [],
-      count: matches ? matches.length : 0,
+      matches: uniqueMatches,
+      count: uniqueMatches.length,
     });
   } catch (err) {
     console.error("Search API error:", err);

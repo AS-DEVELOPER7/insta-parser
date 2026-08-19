@@ -37,18 +37,18 @@ export default function ConnectionsSection({ connections = [], counts = {}, isLo
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
             <Users size={26} className="text-ig-primary" />
             <span>Connections & Network</span>
           </h1>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
             Parsed from your official Instagram connections export data.
           </p>
         </div>
       </div>
 
       {/* Tab Filters */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-3 mb-6 border-b border-[#1f1f1f]">
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-3 mb-6 border-b border-gray-200 dark:border-[#1f1f1f]">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -59,12 +59,12 @@ export default function ConnectionsSection({ connections = [], counts = {}, isLo
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all flex-shrink-0 ${
                 isActive
                   ? 'bg-ig-primary text-white shadow-md'
-                  : 'bg-[#141414] border border-[#242424] text-gray-400 hover:text-white hover:border-[#333]'
+                  : 'bg-gray-100 dark:bg-[#141414] border border-gray-200 dark:border-[#242424] text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-[#333]'
               }`}
             >
               <Icon size={15} />
               <span>{tab.label}</span>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-white/20 text-white' : 'bg-[#222] text-gray-400'}`}>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-[#222] text-gray-700 dark:text-gray-400'}`}>
                 {tab.count}
               </span>
             </button>
@@ -74,13 +74,13 @@ export default function ConnectionsSection({ connections = [], counts = {}, isLo
 
       {/* Search Bar */}
       <div className="relative mb-6">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search connections..."
-          className="w-full pl-10 pr-4 py-2.5 bg-[#121212] border border-[#222] rounded-xl text-sm text-white placeholder-gray-500 outline-none focus:border-ig-primary/60 transition-colors"
+          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#222] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-ig-primary/60 transition-colors shadow-sm"
         />
       </div>
 
@@ -98,9 +98,9 @@ export default function ConnectionsSection({ connections = [], counts = {}, isLo
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 bg-[#121212] border border-[#1f1f1f] rounded-2xl p-8">
-          <Users size={32} className="mx-auto text-gray-600 mb-3" />
-          <h3 className="text-sm font-semibold text-gray-300">No connections found</h3>
+        <div className="text-center py-16 bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-2xl p-8 shadow-sm">
+          <Users size={32} className="mx-auto text-gray-400 dark:text-gray-600 mb-3" />
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-300">No connections found</h3>
           <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
             No entries found under this section. Upload an archive ZIP containing connection data.
           </p>

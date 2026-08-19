@@ -1,5 +1,6 @@
 import './globals.css';
 import ReduxProvider from '@/components/providers/ReduxProvider';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { APP_CONFIG } from '@/constants/config';
 
 export const metadata = {
@@ -35,7 +36,9 @@ export default function RootLayout({ children }) {
         <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
       <body className="bg-black text-white antialiased font-sans selection:bg-ig-primary selection:text-white">
-        <ReduxProvider>{children}</ReduxProvider>
+        <ThemeProvider>
+          <ReduxProvider>{children}</ReduxProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

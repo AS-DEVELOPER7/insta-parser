@@ -19,24 +19,24 @@ export default function MediaLightboxModal({ lightbox, onClose }) {
 
       <div onClick={(e) => e.stopPropagation()} className="max-w-3xl max-h-[85vh] w-full flex items-center justify-center">
         {lightbox.isAudio ? (
-          <div className="bg-[#1a1a1a] border border-[#333] p-8 rounded-2xl max-w-md w-full text-center space-y-5">
+          <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] p-8 rounded-2xl max-w-md w-full text-center space-y-5 shadow-2xl">
             <div className="w-16 h-16 rounded-full bg-ig-primary/20 text-ig-primary flex items-center justify-center mx-auto shadow-lg">
               <Volume2 size={32} />
             </div>
             <div>
-              <h4 className="font-bold text-white text-base">Voice Note / Audio Message</h4>
-              <p className="text-xs text-gray-400 mt-1">Sent by {lightbox.sender || 'User'}</p>
+              <h4 className="font-bold text-gray-900 dark:text-white text-base">Voice Note / Audio Message</h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Sent by {lightbox.sender || 'User'}</p>
             </div>
             <audio src={lightbox.url} controls autoPlay className="w-full rounded-xl" />
           </div>
         ) : lightbox.isExternalLink ? (
-          <div className="bg-[#1a1a1a] border border-[#333] p-6 rounded-2xl max-w-md w-full text-center space-y-4">
+          <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333] p-6 rounded-2xl max-w-md w-full text-center space-y-4 shadow-2xl">
             <div className="w-12 h-12 rounded-full bg-ig-primary/20 text-ig-primary flex items-center justify-center mx-auto">
               <ExternalLink size={24} />
             </div>
-            <h4 className="font-bold text-white text-base">Shared Link / Post</h4>
+            <h4 className="font-bold text-gray-900 dark:text-white text-base">Shared Link / Post</h4>
             {lightbox.shareText && (
-              <p className="text-xs text-gray-300 leading-relaxed max-h-32 overflow-y-auto">{lightbox.shareText}</p>
+              <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed max-h-32 overflow-y-auto">{lightbox.shareText}</p>
             )}
             <a
               href={lightbox.url}

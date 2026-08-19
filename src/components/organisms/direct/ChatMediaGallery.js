@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useLazyGetMediaMessagesQuery } from "@/store/api/apiSlice";
+import MediaLightboxModal from "@/components/molecules/media/MediaLightboxModal";
 
 export default function ChatMediaGallery({
   conversationId,
@@ -117,23 +118,23 @@ export default function ChatMediaGallery({
   );
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col h-full bg-[#0a0a0a] text-white">
+    <div className="absolute inset-0 z-20 flex flex-col h-full bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white transition-colors duration-200">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f1f] bg-[#121212]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-[#1f1f1f] bg-white dark:bg-[#121212]">
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-[#222] transition-colors"
+            className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
             title="Back to chat"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h3 className="font-bold text-sm text-white flex items-center gap-2">
+            <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
               <Images size={16} className="text-ig-primary" />
               <span>Shared Media & Links</span>
             </h3>
-            <p className="text-[11px] text-gray-400">
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">
               {participantName} · {totalCount.toLocaleString()} items
             </p>
           </div>
@@ -141,14 +142,14 @@ export default function ChatMediaGallery({
 
         <button
           onClick={onClose}
-          className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-[#222] transition-colors"
+          className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#222] transition-colors"
         >
           <X size={18} />
         </button>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 px-5 py-2.5 border-b border-[#1f1f1f] bg-[#090909] flex-shrink-0 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1.5 px-5 py-2.5 border-b border-gray-200 dark:border-[#1f1f1f] bg-slate-50 dark:bg-[#090909] flex-shrink-0 overflow-x-auto no-scrollbar">
         {[
           { id: "all", label: "All", count: counts.all },
           { id: "image", label: "Images", count: counts.image },
@@ -163,7 +164,7 @@ export default function ChatMediaGallery({
             className={`px-3 py-1 rounded-full text-xs font-medium transition-all flex-shrink-0 flex items-center gap-1.5 ${
               filter === t.id
                 ? "bg-ig-primary text-white shadow-sm font-semibold"
-                : "bg-[#1a1a1a] text-gray-400 hover:text-white hover:bg-[#262626]"
+                : "bg-gray-200 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-300 dark:hover:bg-[#262626]"
             }`}
           >
             <span>{t.label}</span>
@@ -171,7 +172,7 @@ export default function ChatMediaGallery({
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                 filter === t.id
                   ? "bg-white/20 text-white"
-                  : "bg-[#282828] text-gray-400"
+                  : "bg-gray-300 dark:bg-[#282828] text-gray-800 dark:text-gray-400"
               }`}
             >
               {t.count || 0}
@@ -183,7 +184,7 @@ export default function ChatMediaGallery({
       {/* Gallery grid */}
       <div onScroll={handleScroll} className="flex-1 overflow-y-auto p-4">
         {isLoadingInitial ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-2 text-gray-400">
+          <div className="flex flex-col items-center justify-center h-64 gap-2 text-gray-500 dark:text-gray-400">
             <Loader2 size={24} className="animate-spin text-ig-primary" />
             <span className="text-xs">Loading media gallery…</span>
           </div>
@@ -217,13 +218,13 @@ export default function ChatMediaGallery({
                         sender: msg.sender_name,
                       })
                     }
-                    className="relative aspect-square rounded-xl overflow-hidden bg-[#1a1a1a] group border border-[#262626] hover:border-ig-primary/60 transition-all flex flex-col items-center justify-center p-2 text-left"
+                    className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-[#1a1a1a] group border border-gray-200 dark:border-[#262626] hover:border-ig-primary/60 transition-all flex flex-col items-center justify-center p-2 text-left shadow-sm"
                   >
                     {msg.media_url ? (
                       isAudio ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-gradient-to-br from-[#1e1b2e] to-[#0a0a0a] rounded-lg">
+                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-purple-50 dark:bg-gradient-to-br dark:from-[#1e1b2e] dark:to-[#0a0a0a] rounded-lg">
                           <Volume2 size={18} className="text-ig-primary mb-1" />
-                          <span className="text-[9px] text-gray-300 font-semibold truncate w-full">
+                          <span className="text-[9px] text-gray-700 dark:text-gray-300 font-semibold truncate w-full">
                             Audio
                           </span>
                         </div>
@@ -242,7 +243,7 @@ export default function ChatMediaGallery({
                         />
                       )
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center p-2 bg-gradient-to-br from-[#1c1c1e] to-[#0a0a0a] text-center">
+                      <div className="w-full h-full flex flex-col items-center justify-center p-2 bg-gray-100 dark:bg-gradient-to-br dark:from-[#1c1c1e] dark:to-[#0a0a0a] text-center">
                         <div className="w-8 h-8 rounded-full bg-ig-primary/20 text-ig-primary flex items-center justify-center mb-1">
                           {isVid ? (
                             <Play size={14} className="fill-current" />
@@ -250,13 +251,13 @@ export default function ChatMediaGallery({
                             <ExternalLink size={14} />
                           )}
                         </div>
-                        <span className="text-[10px] text-gray-300 font-medium line-clamp-2 leading-tight">
+                        <span className="text-[10px] text-gray-700 dark:text-gray-300 font-medium line-clamp-2 leading-tight">
                           {msg.share_text || "Shared Link"}
                         </span>
                       </div>
                     )}
 
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
                     {isVid && msg.media_url && (
                       <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white rounded-full p-1">
@@ -277,7 +278,7 @@ export default function ChatMediaGallery({
             {/* Pagination loader */}
             {isLoadingMore && (
               <div className="flex justify-center py-4">
-                <span className="flex items-center gap-2 text-[11px] text-gray-400 bg-[#161616] px-3 py-1.5 rounded-full border border-[#262626]">
+                <span className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-[#161616] px-3 py-1.5 rounded-full border border-gray-200 dark:border-[#262626]">
                   <Loader2 size={13} className="animate-spin text-ig-primary" />
                   Loading more media…
                 </span>
@@ -286,8 +287,8 @@ export default function ChatMediaGallery({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-64 gap-2 text-gray-500 text-center px-4">
-            <Images size={32} className="text-gray-600 mb-1" />
-            <p className="text-xs font-medium text-gray-400">
+            <Images size={32} className="text-gray-400 dark:text-gray-600 mb-1" />
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
               No media found in this category
             </p>
             <p className="text-[11px] text-gray-500">
@@ -298,82 +299,8 @@ export default function ChatMediaGallery({
         )}
       </div>
 
-      {/* Lightbox */}
-      {lightbox && (
-        <div
-          className="absolute inset-0 z-30 bg-black/95 flex items-center justify-center p-6"
-          onClick={() => setLightbox(null)}
-        >
-          <button
-            onClick={() => setLightbox(null)}
-            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-          >
-            <X size={18} />
-          </button>
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="max-w-2xl max-h-[85vh] w-full flex items-center justify-center"
-          >
-            {lightbox.isAudio ? (
-              <div className="bg-[#1a1a1a] border border-[#333] p-8 rounded-2xl max-w-md w-full text-center space-y-5">
-                <div className="w-16 h-16 rounded-full bg-ig-primary/20 text-ig-primary flex items-center justify-center mx-auto shadow-lg">
-                  <Volume2 size={32} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-white text-base">
-                    Voice Note / Audio Message
-                  </h4>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Sent by {lightbox.sender || "User"}
-                  </p>
-                </div>
-                <audio
-                  src={lightbox.url}
-                  controls
-                  autoPlay
-                  className="w-full rounded-xl"
-                />
-              </div>
-            ) : lightbox.isExternalLink ? (
-              <div className="bg-[#1a1a1a] border border-[#333] p-6 rounded-2xl max-w-md w-full text-center space-y-4">
-                <div className="w-12 h-12 rounded-full bg-ig-primary/20 text-ig-primary flex items-center justify-center mx-auto">
-                  <ExternalLink size={24} />
-                </div>
-                <h4 className="font-bold text-white text-base">
-                  Shared Link / Post
-                </h4>
-                {lightbox.shareText && (
-                  <p className="text-xs text-gray-300 leading-relaxed max-h-32 overflow-y-auto">
-                    {lightbox.shareText}
-                  </p>
-                )}
-                <a
-                  href={lightbox.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-ig-primary text-white text-sm font-semibold hover:bg-ig-primary/90 transition-colors"
-                >
-                  <span>Open Link</span>
-                  <ExternalLink size={14} />
-                </a>
-              </div>
-            ) : lightbox.isVid ? (
-              <video
-                src={lightbox.url}
-                controls
-                autoPlay
-                className="max-w-full max-h-[80vh] rounded-2xl shadow-2xl"
-              />
-            ) : (
-              <img
-                src={lightbox.url}
-                alt="Preview"
-                className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl"
-              />
-            )}
-          </div>
-        </div>
-      )}
+      {/* Lightbox Modal */}
+      <MediaLightboxModal lightbox={lightbox} onClose={() => setLightbox(null)} />
     </div>
   );
 }

@@ -64,31 +64,38 @@ export async function POST(request) {
         }
       }
 
-      const existingSet = new Set();
       const duplicateIdsToDelete = [];
+      const keptMessagesMap = new Map(); // key: contentSig -> array of kept messages
 
       for (const m of allMessages) {
-        const timeKey = m.sent_at ? new Date(m.sent_at).getTime() : 0;
-        const secondKey = Math.floor(timeKey / 1000);
         const cleanContent = (m.content || "").trim().toLowerCase();
+        const mediaKey = m.media_url || m.share_url || "";
+        
+        if (!cleanContent && !mediaKey) continue;
 
-        const exactKey = `${m.sender_name}_${timeKey}`;
-        const secondContentKey = cleanContent
-          ? `${m.sender_name}_${secondKey}_${cleanContent}`
-          : null;
-        const secondMediaKey = `${m.sender_name}_${secondKey}_${m.message_type || "text"}_${m.media_url || m.share_url || ""}`;
+        const contentSig = cleanContent
+          ? `${m.sender_name}::text::${cleanContent}`
+          : `${m.sender_name}::media::${mediaKey}`;
 
-        const isDuplicate =
-          existingSet.has(exactKey) ||
-          (secondContentKey && existingSet.has(secondContentKey)) ||
-          ((m.media_url || m.share_url) && existingSet.has(secondMediaKey));
+        const timeMs = m.sent_at ? new Date(m.sent_at).getTime() : 0;
 
-        if (isDuplicate) {
-          duplicateIdsToDelete.push(m.id);
+        if (!keptMessagesMap.has(contentSig)) {
+          keptMessagesMap.set(contentSig, [{ id: m.id, timeMs, sentAt: m.sent_at }]);
         } else {
-          existingSet.add(exactKey);
-          if (secondContentKey) existingSet.add(secondContentKey);
-          if (m.media_url || m.share_url) existingSet.add(secondMediaKey);
+          const keptList = keptMessagesMap.get(contentSig);
+          // Check if m is a duplicate of any message already kept for this content
+          const isDuplicate = keptList.some((kept) => {
+            const diffMs = Math.abs(timeMs - kept.timeMs);
+            const diffHours = diffMs / (1000 * 3600);
+            // If timestamps match within 36 hours (covers exact seconds, minutes & 11-13h timezone shifts)
+            return diffHours <= 36;
+          });
+
+          if (isDuplicate) {
+            duplicateIdsToDelete.push(m.id);
+          } else {
+            keptList.push({ id: m.id, timeMs, sentAt: m.sent_at });
+          }
         }
       }
 

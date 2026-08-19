@@ -29,7 +29,13 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setErrorMsg(error.message);
+        if (error.message?.toLowerCase().includes('failed to fetch')) {
+          setErrorMsg(
+            'Unable to connect to Supabase. Please configure your NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
+          );
+        } else {
+          setErrorMsg(error.message);
+        }
       } else {
         router.push('/');
         router.refresh();

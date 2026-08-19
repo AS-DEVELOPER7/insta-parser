@@ -12,11 +12,11 @@ export default function ProfileHeader({ profile, stats, onLogout }) {
   const avatarUrl = profile?.avatar_url;
 
   return (
-    <div className="bg-[#121212] border border-[#1f1f1f] rounded-3xl p-6 sm:p-8 mb-8">
+    <div className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-[#1f1f1f] rounded-3xl p-6 sm:p-8 mb-8 shadow-sm transition-colors duration-200">
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
         {/* Avatar with IG Gradient Border */}
         <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] p-1 flex-shrink-0 shadow-xl relative">
-          <div className="w-full h-full rounded-full bg-black overflow-hidden flex items-center justify-center font-bold text-white text-3xl uppercase">
+          <div className="w-full h-full rounded-full bg-white dark:bg-black overflow-hidden flex items-center justify-center font-bold text-gray-900 dark:text-white text-3xl uppercase">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -32,7 +32,7 @@ export default function ProfileHeader({ profile, stats, onLogout }) {
         {/* Main Bio & Info Details */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mb-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
               @{username}
             </h1>
             {isPrivate && (
@@ -54,14 +54,14 @@ export default function ProfileHeader({ profile, stats, onLogout }) {
             </Link>
             <Link
               href="/preferences"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1f1f1f] hover:bg-[#2a2a2a] text-gray-200 border border-[#333] rounded-xl text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-[#1f1f1f] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-[#333] rounded-xl text-xs font-semibold transition-colors"
             >
               <Sliders size={14} />
               <span>Settings</span>
             </Link>
             <button
               onClick={onLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-xl text-xs font-semibold transition-colors"
             >
               <LogOut size={14} />
               <span>Log Out</span>
@@ -69,41 +69,41 @@ export default function ProfileHeader({ profile, stats, onLogout }) {
           </div>
 
           {fullName && (
-            <h2 className="text-base font-semibold text-gray-200 mb-3">
+            <h2 className="text-base font-semibold text-gray-700 dark:text-gray-200 mb-3">
               {fullName}
             </h2>
           )}
 
           {/* Stats Bar */}
-          <div className="flex items-center justify-center sm:justify-start gap-6 py-2 mb-3 border-y border-[#1a1a1a] text-xs">
+          <div className="flex items-center justify-center sm:justify-start gap-6 py-2 mb-3 border-y border-gray-200 dark:border-[#1a1a1a] text-xs">
             <div>
-              <span className="font-bold text-white text-sm">
+              <span className="font-bold text-gray-900 dark:text-white text-sm">
                 {stats.postsCount}
               </span>{" "}
-              <span className="text-gray-400">posts</span>
+              <span className="text-gray-500 dark:text-gray-400">posts</span>
             </div>
             <div>
-              <span className="font-bold text-white text-sm">
+              <span className="font-bold text-gray-900 dark:text-white text-sm">
                 {stats.storiesCount}
               </span>{" "}
-              <span className="text-gray-400">stories</span>
+              <span className="text-gray-500 dark:text-gray-400">stories</span>
             </div>
             <div>
-              <span className="font-bold text-white text-sm">
+              <span className="font-bold text-gray-900 dark:text-white text-sm">
                 {stats.followersCount}
               </span>{" "}
-              <span className="text-gray-400">followers</span>
+              <span className="text-gray-500 dark:text-gray-400">followers</span>
             </div>
             <div>
-              <span className="font-bold text-white text-sm">
+              <span className="font-bold text-gray-900 dark:text-white text-sm">
                 {stats.followingCount}
               </span>{" "}
-              <span className="text-gray-400">following</span>
+              <span className="text-gray-500 dark:text-gray-400">following</span>
             </div>
           </div>
 
           {bio && (
-            <div className="text-xs text-gray-300 whitespace-pre-line leading-relaxed bg-[#181818] p-3.5 rounded-2xl border border-[#262626] max-w-lg mb-3">
+            <div className="text-xs text-gray-800 dark:text-gray-300 whitespace-pre-line leading-relaxed bg-slate-50 dark:bg-[#181818] p-3.5 rounded-2xl border border-gray-200 dark:border-[#262626] max-w-lg mb-3">
               {bio}
             </div>
           )}

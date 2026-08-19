@@ -425,31 +425,39 @@ function parseHtmlTime(str) {
     .trim();
 
   try {
-    // Attempt standard JS Date parse
-    let d = new Date(cleanStr);
-    if (!isNaN(d.getTime())) return d.toISOString();
-
-    // Fix extra commas e.g. "Apr 11, 2025, 11:20 am" -> "Apr 11, 2025 11:20 am"
-    const fixedComma = cleanStr.replace(/(\d{4}),\s*/, '$1 ');
-    d = new Date(fixedComma);
-    if (!isNaN(d.getTime())) return d.toISOString();
-
-    // Parse "MMM DD, YYYY HH:MM am/pm" manually
-    const dateMatch = cleanStr.match(/([A-Za-z]{3})\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+    // 1. Try explicit regex matching for standard Instagram HTML formats e.g. "Jun 13, 2026, 12:37 pm" or "13 Jun 2026 12:37 pm"
+    const dateMatch = cleanStr.match(/([A-Za-z]{3}|\d{1,2})\s+([A-Za-z]{3}|\d{1,2}),?\s+(\d{4})\s*,?\s*(\d{1,2}):(\d{2})\s*(am|pm)?/i);
     if (dateMatch) {
-      const [, monthStr, day, year, hours, minutes, ampm] = dateMatch;
-      let h = parseInt(hours, 10);
-      if (ampm) {
-        if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
-        if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
+      const [, part1, part2, yearStr, hoursStr, minutesStr, ampm] = dateMatch;
+      let monthStr = part1;
+      let dayStr = part2;
+      // Swap if day comes first (e.g. "13 Jun 2026")
+      if (/^\d+$/.test(part1) && /^[A-Za-z]+$/.test(part2)) {
+        dayStr = part1;
+        monthStr = part2;
       }
+
       const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
       const mIdx = months[monthStr.toLowerCase().slice(0, 3)];
       if (mIdx !== undefined) {
-        d = new Date(Date.UTC(parseInt(year, 10), mIdx, parseInt(day, 10), h, parseInt(minutes, 10)));
+        let h = parseInt(hoursStr, 10);
+        const m = parseInt(minutesStr, 10);
+        if (ampm) {
+          if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
+          if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
+        }
+        const d = new Date(Date.UTC(parseInt(yearStr, 10), mIdx, parseInt(dayStr, 10), h, m));
         if (!isNaN(d.getTime())) return d.toISOString();
       }
     }
+
+    // 2. Fallback to standard JS Date parse if regex match did not trigger
+    const fixedComma = cleanStr.replace(/(\d{4}),\s*/, '$1 ');
+    let d = new Date(fixedComma);
+    if (!isNaN(d.getTime())) return d.toISOString();
+
+    d = new Date(cleanStr);
+    if (!isNaN(d.getTime())) return d.toISOString();
   } catch (e) {}
 
   return new Date().toISOString();

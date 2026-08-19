@@ -3,7 +3,7 @@ import BottomNav from '@/components/layout/BottomNav';
 
 export default function MainLayoutTemplate({ userProfile, hideMobileNav = false, children }) {
   return (
-    <div className="min-h-screen bg-black text-white flex">
+    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white flex transition-colors duration-200">
       {/* Desktop Sidebar — fixed, hover-expands over content */}
       <Sidebar userProfile={userProfile} />
 

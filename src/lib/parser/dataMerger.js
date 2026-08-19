@@ -344,34 +344,41 @@ export async function processAndMergeZip(
         );
 
         // 2. Identify & Clean Up Existing Duplicate Rows in Supabase Database (if any exist from prior runs)
-        const existingSet = new Set();
         const duplicateIdsToDelete = [];
         const cleanExistingMsgs = [];
+        const keptMessagesMap = new Map();
 
         for (const m of existingMsgs) {
-          const timeKey = m.sent_at ? new Date(m.sent_at).getTime() : 0;
-          const secondKey = Math.floor(timeKey / 1000);
           const cleanContent = (m.content || "").trim().toLowerCase();
-
-          const exactKey = `${m.sender_name}_${timeKey}`;
-          const secondContentKey = cleanContent
-            ? `${m.sender_name}_${secondKey}_${cleanContent}`
-            : null;
-          const secondMediaKey = `${m.sender_name}_${secondKey}_${m.message_type || "text"}_${m.media_url || m.share_url || ""}`;
-
-          // Check if this row is a DB duplicate of an earlier fetched row
-          const isDuplicate =
-            existingSet.has(exactKey) ||
-            (secondContentKey && existingSet.has(secondContentKey)) ||
-            ((m.media_url || m.share_url) && existingSet.has(secondMediaKey));
-
-          if (isDuplicate) {
-            duplicateIdsToDelete.push(m.id);
-          } else {
-            existingSet.add(exactKey);
-            if (secondContentKey) existingSet.add(secondContentKey);
-            if (m.media_url || m.share_url) existingSet.add(secondMediaKey);
+          const mediaKey = m.media_url || m.share_url || "";
+          
+          if (!cleanContent && !mediaKey) {
             cleanExistingMsgs.push(m);
+            continue;
+          }
+
+          const contentSig = cleanContent
+            ? `${m.sender_name}::text::${cleanContent}`
+            : `${m.sender_name}::media::${mediaKey}`;
+
+          const timeMs = m.sent_at ? new Date(m.sent_at).getTime() : 0;
+
+          if (!keptMessagesMap.has(contentSig)) {
+            keptMessagesMap.set(contentSig, [{ id: m.id, timeMs, sentAt: m.sent_at }]);
+            cleanExistingMsgs.push(m);
+          } else {
+            const keptList = keptMessagesMap.get(contentSig);
+            const isDuplicate = keptList.some((kept) => {
+              const diffMs = Math.abs(timeMs - kept.timeMs);
+              return diffMs / (1000 * 3600) <= 36;
+            });
+
+            if (isDuplicate) {
+              duplicateIdsToDelete.push(m.id);
+            } else {
+              keptList.push({ id: m.id, timeMs, sentAt: m.sent_at });
+              cleanExistingMsgs.push(m);
+            }
           }
         }
 
@@ -387,16 +394,35 @@ export async function processAndMergeZip(
           }
         }
 
-        // 3. Build dual maps for Cloudinary uploads using cleaned existing messages
+        // 3. Build dual maps for Cloudinary uploads using cleaned existing messages & existingSet for fast deduplication
         const existingMediaByFilename = new Map();
         const existingMediaBySenderTime = new Map();
+        const existingSet = new Set();
 
         cleanExistingMsgs.forEach((m) => {
+          const timeKey = m.sent_at ? new Date(m.sent_at).getTime() : 0;
+          const secondKey = Math.floor(timeKey / 1000);
+          const minuteKey = Math.floor(timeKey / 60000);
+          const cleanContent = (m.content || "").trim().toLowerCase();
+
+          const exactKey = `${m.sender_name}_${timeKey}`;
+          existingSet.add(exactKey);
+
+          if (cleanContent) {
+            existingSet.add(`${m.sender_name}_s_${secondKey}_${cleanContent}`);
+            existingSet.add(`${m.sender_name}_m_${minuteKey}_${cleanContent}`);
+          }
+          const mediaTarget = m.media_url || m.share_url;
+          if (mediaTarget) {
+            existingSet.add(`${m.sender_name}_s_${secondKey}_${m.message_type || "text"}_${mediaTarget}`);
+            existingSet.add(`${m.sender_name}_m_${minuteKey}_${m.message_type || "text"}_${mediaTarget}`);
+          }
+
           if (m.media_url && m.media_url.includes("cloudinary.com")) {
             if (m.sender_name && m.sent_at) {
-              const minuteKey = new Date(m.sent_at).toISOString().slice(0, 16);
+              const minStr = new Date(m.sent_at).toISOString().slice(0, 16);
               existingMediaBySenderTime.set(
-                `${m.sender_name}_${minuteKey}`,
+                `${m.sender_name}_${minStr}`,
                 m.media_url,
               );
             }
@@ -457,25 +483,58 @@ export async function processAndMergeZip(
 
           const timeKey = msg.sentAt ? new Date(msg.sentAt).getTime() : 0;
           const secondKey = Math.floor(timeKey / 1000);
+          const minuteKey = Math.floor(timeKey / 60000);
           const cleanContent = (msg.content || "").trim().toLowerCase();
+          const mediaTarget = mediaUrl || msg.shareUrl || "";
 
           const exactKey = `${msg.senderName}_${timeKey}`;
-          const secondContentKey = cleanContent
-            ? `${msg.senderName}_${secondKey}_${cleanContent}`
-            : null;
-          const secondMediaKey = `${msg.senderName}_${secondKey}_${msg.messageType || "text"}_${mediaUrl || msg.shareUrl || ""}`;
 
-          // Check if this message is already in DB or already added in current batch
-          const isDuplicate =
-            existingSet.has(exactKey) ||
-            (secondContentKey && existingSet.has(secondContentKey)) ||
-            ((mediaUrl || msg.shareUrl) && existingSet.has(secondMediaKey));
+          let isDuplicate = existingSet.has(exactKey);
+
+          if (!isDuplicate && cleanContent) {
+            const sKey = `${msg.senderName}_s_${secondKey}_${cleanContent}`;
+            const mKey = `${msg.senderName}_m_${minuteKey}_${cleanContent}`;
+            const mPrev = `${msg.senderName}_m_${minuteKey - 1}_${cleanContent}`;
+            const mNext = `${msg.senderName}_m_${minuteKey + 1}_${cleanContent}`;
+
+            if (
+              existingSet.has(sKey) ||
+              existingSet.has(mKey) ||
+              existingSet.has(mPrev) ||
+              existingSet.has(mNext)
+            ) {
+              isDuplicate = true;
+            }
+          }
+
+          if (!isDuplicate && mediaTarget) {
+            const mType = msg.messageType || "text";
+            const sMediaKey = `${msg.senderName}_s_${secondKey}_${mType}_${mediaTarget}`;
+            const mMediaKey = `${msg.senderName}_m_${minuteKey}_${mType}_${mediaTarget}`;
+            const mMediaPrev = `${msg.senderName}_m_${minuteKey - 1}_${mType}_${mediaTarget}`;
+            const mMediaNext = `${msg.senderName}_m_${minuteKey + 1}_${mType}_${mediaTarget}`;
+
+            if (
+              existingSet.has(sMediaKey) ||
+              existingSet.has(mMediaKey) ||
+              existingSet.has(mMediaPrev) ||
+              existingSet.has(mMediaNext)
+            ) {
+              isDuplicate = true;
+            }
+          }
 
           if (!isDuplicate) {
-            // Add keys to existingSet so duplicate entries within the file/batch are also blocked
             existingSet.add(exactKey);
-            if (secondContentKey) existingSet.add(secondContentKey);
-            if (mediaUrl || msg.shareUrl) existingSet.add(secondMediaKey);
+            if (cleanContent) {
+              existingSet.add(`${msg.senderName}_s_${secondKey}_${cleanContent}`);
+              existingSet.add(`${msg.senderName}_m_${minuteKey}_${cleanContent}`);
+            }
+            if (mediaTarget) {
+              const mType = msg.messageType || "text";
+              existingSet.add(`${msg.senderName}_s_${secondKey}_${mType}_${mediaTarget}`);
+              existingSet.add(`${msg.senderName}_m_${minuteKey}_${mType}_${mediaTarget}`);
+            }
 
             messagesToInsert.push({
               conversation_id: dbConv.id,
