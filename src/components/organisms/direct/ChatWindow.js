@@ -117,10 +117,12 @@ export default function ChatWindow({
   );
   const [addFavorite] = useAddFavoriteMutation();
   const [removeFavorite] = useRemoveFavoriteMutation();
+  const [togglingFavIds, setTogglingFavIds] = useState(new Set());
 
   const handleToggleFavorite = useCallback(
     async (msg) => {
       if (!msg?.id || !activeConv?.id) return;
+      setTogglingFavIds((prev) => new Set(prev).add(msg.id));
       const isFav = favoriteMessageIds.has(msg.id);
       try {
         if (isFav) {
@@ -134,6 +136,12 @@ export default function ChatWindow({
         }
       } catch (err) {
         console.error('Error toggling favorite:', err);
+      } finally {
+        setTogglingFavIds((prev) => {
+          const next = new Set(prev);
+          next.delete(msg.id);
+          return next;
+        });
       }
     },
     [activeConv?.id, favoriteMessageIds, addFavorite, removeFavorite]
@@ -753,6 +761,7 @@ export default function ChatWindow({
                       isMe={isMe}
                       highlight={searchQuery || undefined}
                       isFavorite={favoriteMessageIds.has(msg.id)}
+                      isFavoriteLoading={togglingFavIds.has(msg.id)}
                       onToggleFavorite={handleToggleFavorite}
                       onMediaClick={(lightboxData) => setLightbox(lightboxData)}
                     />

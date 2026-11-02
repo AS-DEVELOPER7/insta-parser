@@ -68,12 +68,17 @@ export default function ChatStarredDrawer({
     return contentMatch || senderMatch || noteMatch;
   });
 
+  const [removingId, setRemovingId] = useState(null);
+
   const handleRemove = async (e, messageId) => {
     e.stopPropagation();
+    setRemovingId(messageId);
     try {
       await removeFavorite({ messageId }).unwrap();
     } catch (err) {
       console.error("Failed to remove favorite:", err);
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -183,11 +188,16 @@ export default function ChatStarredDrawer({
                     </span>
                     <button
                       onClick={(e) => handleRemove(e, msg.id)}
-                      className=" p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-all"
+                      disabled={removingId === msg.id}
+                      className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-all disabled:opacity-50"
                       title="Unstar message"
                       aria-label="Unstar message"
                     >
-                      <Trash2 size={13} />
+                      {removingId === msg.id ? (
+                        <Loader2 size={13} className="animate-spin text-red-500" />
+                      ) : (
+                        <Trash2 size={13} />
+                      )}
                     </button>
                   </div>
                 </div>

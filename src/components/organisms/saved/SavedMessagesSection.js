@@ -117,6 +117,12 @@ export default function SavedMessagesSection() {
   const [editingTagId, setEditingTagId] = useState(null);
   const [tagDraft, setTagDraft] = useState('');
 
+  // Inline loading states
+  const [removingId, setRemovingId] = useState(null);
+  const [savingTagId, setSavingTagId] = useState(null);
+  const [savingTagChoice, setSavingTagChoice] = useState(null);
+  const [savingNoteId, setSavingNoteId] = useState(null);
+
   const { data: profileData } = useGetProfileQuery();
   const userProfile = profileData?.profile;
 
@@ -176,41 +182,57 @@ export default function SavedMessagesSection() {
   }, [favorites, selectedTag, selectedConvId, searchQuery]);
 
   const handleRemove = async (messageId) => {
+    setRemovingId(messageId);
     try {
       await removeFavorite({ messageId }).unwrap();
     } catch (err) {
       console.error('Failed to remove favorite:', err);
+    } finally {
+      setRemovingId(null);
     }
   };
 
   const handleSaveNote = async (messageId) => {
+    setSavingNoteId(messageId);
     try {
       await updateFavorite({ messageId, note: noteDraft.trim() || null }).unwrap();
       setEditingNoteId(null);
       setNoteDraft('');
     } catch (err) {
       console.error('Failed to update note:', err);
+    } finally {
+      setSavingNoteId(null);
     }
   };
 
   const handleSaveTag = async (messageId) => {
     if (!tagDraft.trim()) return;
+    setSavingTagId(messageId);
+    setSavingTagChoice('custom');
     try {
       await updateFavorite({ messageId, tag: tagDraft.trim() }).unwrap();
       setEditingTagId(null);
       setTagDraft('');
     } catch (err) {
       console.error('Failed to update tag:', err);
+    } finally {
+      setSavingTagId(null);
+      setSavingTagChoice(null);
     }
   };
 
   const handleSaveDirectTag = async (messageId, tagChoice) => {
+    setSavingTagId(messageId);
+    setSavingTagChoice(tagChoice);
     try {
       await updateFavorite({ messageId, tag: tagChoice || 'General' }).unwrap();
       setEditingTagId(null);
       setTagDraft('');
     } catch (err) {
       console.error('Failed to update tag directly:', err);
+    } finally {
+      setSavingTagId(null);
+      setSavingTagChoice(null);
     }
   };
 
@@ -386,24 +408,37 @@ export default function SavedMessagesSection() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (savingTagId === msg.id) return;
                             setEditingNoteId(null);
                             setEditingTagId(editingTagId === fav.id ? null : fav.id);
                             setTagDraft(fav.tag || 'General');
                           }}
+                          disabled={savingTagId === msg.id}
                           className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-all active:scale-95 shadow-sm flex-shrink-0 ${
-                            isEditingThisTag
+                            savingTagId === msg.id
+                              ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 cursor-wait'
+                              : isEditingThisTag
                               ? 'bg-amber-500 text-white ring-2 ring-amber-500/30'
                               : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20'
                           }`}
-                          title="Click to edit or switch tag"
+                          title={savingTagId === msg.id ? 'Updating tag...' : 'Click to edit or switch tag'}
                         >
-                          <Tag size={11} className={isEditingThisTag ? 'fill-current' : ''} />
-                          <span>{fav.tag || 'General'}</span>
-                          <Edit3 size={10} className="opacity-70 ml-0.5" />
+                          {savingTagId === msg.id ? (
+                            <Loader2 size={11} className="animate-spin text-amber-500" />
+                          ) : (
+                            <Tag size={11} className={isEditingThisTag ? 'fill-current' : ''} />
+                          )}
+                          <span>{savingTagId === msg.id ? 'Updating...' : (fav.tag || 'General')}</span>
+                          {savingTagId !== msg.id && <Edit3 size={10} className="opacity-70 ml-0.5" />}
                         </button>
 
                         {/* Note badge / Add note action */}
-                        {!isEditingThisNote && (
+                        {savingNoteId === msg.id ? (
+                          <div className="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-1">
+                            <Loader2 size={11} className="animate-spin text-amber-500" />
+                            <span>Saving note...</span>
+                          </div>
+                        ) : !isEditingThisNote && (
                           fav.note ? (
                             <button
                               onClick={(e) => {
@@ -451,11 +486,16 @@ export default function SavedMessagesSection() {
 
                     <button
                       onClick={() => handleRemove(msg.id)}
-                      className="text-gray-400 hover:text-red-500 p-1.5 rounded-xl hover:bg-red-500/10 transition-colors"
+                      disabled={removingId === msg.id}
+                      className="text-gray-400 hover:text-red-500 p-1.5 rounded-xl hover:bg-red-500/10 transition-colors disabled:opacity-50"
                       title="Remove from saved"
                       aria-label="Remove from saved"
                     >
-                      <Trash2 size={15} />
+                      {removingId === msg.id ? (
+                        <Loader2 size={15} className="animate-spin text-red-500" />
+                      ) : (
+                        <Trash2 size={15} />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -484,19 +524,27 @@ export default function SavedMessagesSection() {
                     <div className="flex flex-wrap items-center gap-1.5 max-h-36 overflow-y-auto no-scrollbar py-0.5">
                       {availableTags.map((tagOption) => {
                         const isCurrent = (fav.tag || 'General') === tagOption;
+                        const isThisTagLoading = savingTagId === msg.id && savingTagChoice === tagOption;
                         return (
                           <button
                             key={tagOption}
                             onClick={() => handleSaveDirectTag(msg.id, tagOption)}
+                            disabled={savingTagId === msg.id}
                             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 ${
-                              isCurrent
+                              isThisTagLoading
+                                ? 'bg-amber-500 text-white shadow-sm ring-2 ring-amber-500/30 cursor-wait'
+                                : isCurrent
                                 ? 'bg-amber-500 text-white shadow-sm ring-2 ring-amber-500/30'
                                 : 'bg-white dark:bg-[#202020] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282828] border border-gray-200 dark:border-[#333]'
-                            }`}
+                            } ${savingTagId === msg.id && !isThisTagLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
                           >
-                            <Tag size={10} className={isCurrent ? 'fill-current' : 'text-gray-400'} />
+                            {isThisTagLoading ? (
+                              <Loader2 size={11} className="animate-spin text-white" />
+                            ) : (
+                              <Tag size={10} className={isCurrent ? 'fill-current' : 'text-gray-400'} />
+                            )}
                             <span>{tagOption}</span>
-                            {isCurrent && <Check size={11} className="ml-0.5" />}
+                            {isCurrent && !isThisTagLoading && <Check size={11} className="ml-0.5" />}
                           </button>
                         );
                       })}
@@ -510,14 +558,15 @@ export default function SavedMessagesSection() {
                           value={tagDraft}
                           onChange={(e) => setTagDraft(e.target.value)}
                           placeholder="Type a new custom tag..."
-                          className="w-full h-9 bg-white dark:bg-[#202020] border border-gray-300 dark:border-[#383838] rounded-xl px-3 text-xs text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-amber-500 transition-colors"
+                          disabled={savingTagId === msg.id}
+                          className="w-full h-9 bg-white dark:bg-[#202020] border border-gray-300 dark:border-[#383838] rounded-xl px-3 text-xs text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-amber-500 transition-colors disabled:opacity-50"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleSaveTag(msg.id);
                             if (e.key === 'Escape') setEditingTagId(null);
                           }}
                           autoFocus
                         />
-                        {tagDraft && (
+                        {tagDraft && !savingTagId && (
                           <button
                             onClick={() => setTagDraft('')}
                             className="absolute right-2 text-gray-400 hover:text-gray-600 p-1"
@@ -529,11 +578,20 @@ export default function SavedMessagesSection() {
 
                       <button
                         onClick={() => handleSaveTag(msg.id)}
-                        disabled={!tagDraft.trim()}
-                        className="h-9 px-3.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1 active:scale-95 flex-shrink-0"
+                        disabled={!tagDraft.trim() || savingTagId === msg.id}
+                        className="h-9 px-3.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 active:scale-95 flex-shrink-0"
                       >
-                        <Check size={13} />
-                        <span>Apply</span>
+                        {savingTagId === msg.id && savingTagChoice === 'custom' ? (
+                          <>
+                            <Loader2 size={13} className="animate-spin" />
+                            <span>Applying...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={13} />
+                            <span>Apply</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -552,7 +610,8 @@ export default function SavedMessagesSection() {
                       </span>
                       <button
                         onClick={() => setEditingNoteId(null)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                        disabled={savingNoteId === msg.id}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-40"
                         title="Cancel"
                       >
                         <X size={15} />
@@ -564,7 +623,8 @@ export default function SavedMessagesSection() {
                       value={noteDraft}
                       onChange={(e) => setNoteDraft(e.target.value)}
                       placeholder="Why did you save this message? Add context or a reminder..."
-                      className="w-full bg-white dark:bg-[#181818] border border-gray-300 dark:border-[#383838] rounded-xl p-2.5 text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-amber-500 resize-none transition-colors"
+                      disabled={savingNoteId === msg.id}
+                      className="w-full bg-white dark:bg-[#181818] border border-gray-300 dark:border-[#383838] rounded-xl p-2.5 text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-amber-500 resize-none transition-colors disabled:opacity-50"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -577,16 +637,27 @@ export default function SavedMessagesSection() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => setEditingNoteId(null)}
-                        className="px-3 h-8 text-xs font-medium text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                        disabled={savingNoteId === msg.id}
+                        className="px-3 h-8 text-xs font-medium text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors disabled:opacity-40"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => handleSaveNote(msg.id)}
-                        className="px-4 h-8 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1 active:scale-95"
+                        disabled={savingNoteId === msg.id}
+                        className="px-4 h-8 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
                       >
-                        <Check size={13} />
-                        <span>Save Note</span>
+                        {savingNoteId === msg.id ? (
+                          <>
+                            <Loader2 size={13} className="animate-spin" />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={13} />
+                            <span>Save Note</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { ExternalLink, Play, Maximize2, Star } from "lucide-react";
+import { ExternalLink, Play, Maximize2, Star, Loader2 } from "lucide-react";
 
 function formatMessageDateTime(dateStr) {
   if (!dateStr) return "";
@@ -26,6 +26,7 @@ export default function MessageBubble({
   highlight,
   onMediaClick,
   isFavorite = false,
+  isFavoriteLoading = false,
   onToggleFavorite,
 }) {
   const time = formatMessageDateTime(message.sent_at);
@@ -114,20 +115,41 @@ export default function MessageBubble({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onToggleFavorite(message);
+              if (!isFavoriteLoading) {
+                onToggleFavorite(message);
+              }
             }}
+            disabled={isFavoriteLoading}
             className={`w-7 h-7 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${
-              isFavorite
+              isFavoriteLoading
+                ? "opacity-100 text-amber-500 bg-amber-500/10 cursor-wait"
+                : isFavorite
                 ? "opacity-100 text-amber-500 hover:text-amber-600 bg-amber-500/10"
                 : "opacity-0 group-hover/msg:opacity-100 text-gray-400 hover:text-amber-500 hover:bg-gray-100 dark:hover:bg-[#222]"
             }`}
-            title={isFavorite ? "Remove from Starred" : "Star message"}
-            aria-label={isFavorite ? "Remove from Starred" : "Star message"}
+            title={
+              isFavoriteLoading
+                ? "Saving..."
+                : isFavorite
+                ? "Remove from Starred"
+                : "Star message"
+            }
+            aria-label={
+              isFavoriteLoading
+                ? "Saving..."
+                : isFavorite
+                ? "Remove from Starred"
+                : "Star message"
+            }
           >
-            <Star
-              size={14}
-              className={isFavorite ? "fill-amber-400 text-amber-500" : ""}
-            />
+            {isFavoriteLoading ? (
+              <Loader2 size={13} className="animate-spin text-amber-500" />
+            ) : (
+              <Star
+                size={14}
+                className={isFavorite ? "fill-amber-400 text-amber-500" : ""}
+              />
+            )}
           </button>
         )}
 
