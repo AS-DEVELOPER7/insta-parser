@@ -20,6 +20,7 @@ import {
   useRemoveFavoriteMutation,
   useUpdateFavoriteMutation,
 } from "@/store/api/apiSlice";
+import { sanitizeUrl } from "@/utils/security";
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -216,7 +217,7 @@ export default function ChatStarredDrawer({
                 {/* Shared Reel / Post link if present */}
                 {msg.share_url && (
                   <a
-                    href={msg.share_url}
+                    href={sanitizeUrl(msg.share_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}

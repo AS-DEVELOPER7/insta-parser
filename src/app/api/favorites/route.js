@@ -123,6 +123,21 @@ export async function POST(request) {
       );
     }
 
+    // Verify that conversationId belongs to the authenticated user (IDOR prevention)
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!conv) {
+      return NextResponse.json(
+        { error: 'Conversation not found or access denied' },
+        { status: 404 }
+      );
+    }
+
     const { data, error } = await supabase
       .from('favorite_messages')
       .upsert(

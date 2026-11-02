@@ -29,6 +29,21 @@ export async function GET(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Defense-in-depth IDOR check: Verify conversation ownership
+    const { data: conv, error: convErr } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("id", conversationId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (convErr || !conv) {
+      return NextResponse.json(
+        { error: "Conversation not found or access denied" },
+        { status: 404 }
+      );
+    }
+
     const { data: matches, error } = await supabase
       .from("messages")
       .select(

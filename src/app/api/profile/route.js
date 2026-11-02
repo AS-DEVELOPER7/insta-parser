@@ -41,11 +41,6 @@ export async function GET() {
       .eq('user_id', user.id)
       .order('taken_at', { ascending: false });
 
-    console.log('--- DB POSTS DEBUG --- count:', dbPosts?.length);
-    dbPosts?.forEach((p) => {
-      console.log(`ID: ${p.id} | taken_at: ${p.taken_at} | caption: "${p.caption?.slice(0, 25)}" | media_count: ${p.post_media?.length} | first_url: ${p.post_media?.[0]?.media_url}`);
-    });
-
     // Deduplicate posts by matching timestamp window (within 60s) or exact non-empty caption
     const deduplicatedPosts = [];
 

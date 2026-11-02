@@ -24,6 +24,7 @@ import {
   useUpdateFavoriteMutation,
   useGetProfileQuery,
 } from '@/store/api/apiSlice';
+import { sanitizeUrl } from '@/utils/security';
 
 function cleanName(str) {
   return (str || '')
@@ -685,7 +686,7 @@ export default function SavedMessagesSection() {
                         </p>
                       )}
                       <a
-                        href={msg.share_url}
+                        href={sanitizeUrl(msg.share_url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { ExternalLink, Play, Maximize2, Star, Loader2 } from "lucide-react";
+import { sanitizeUrl } from "@/utils/security";
 
 function formatMessageDateTime(dateStr) {
   if (!dateStr) return "";
@@ -158,7 +159,7 @@ export default function MessageBubble({
           {message.message_type === "share" &&
             (message.share_url || message.share_text) && (
               <a
-                href={message.share_url || "#"}
+                href={sanitizeUrl(message.share_url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`group flex flex-col gap-1.5 px-3.5 py-2.5 rounded-[18px] border text-sm transition-colors max-w-[260px] ${
