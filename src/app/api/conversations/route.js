@@ -24,7 +24,25 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ conversations: conversations || [] });
+    // Fetch counts of starred messages per conversation for this user
+    const { data: favCounts } = await supabase
+      .from('favorite_messages')
+      .select('conversation_id')
+      .eq('user_id', user.id);
+
+    const starredCountsByConv = {};
+    (favCounts || []).forEach((f) => {
+      if (f.conversation_id) {
+        starredCountsByConv[f.conversation_id] = (starredCountsByConv[f.conversation_id] || 0) + 1;
+      }
+    });
+
+    const enrichedConversations = (conversations || []).map((c) => ({
+      ...c,
+      starred_count: starredCountsByConv[c.id] || 0,
+    }));
+
+    return NextResponse.json({ conversations: enrichedConversations });
   } catch (err) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

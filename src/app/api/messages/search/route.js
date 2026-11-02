@@ -66,6 +66,61 @@ export async function GET(request) {
       }
     }
 
+    // Fetch favorite status for this user & conversation to identify starred messages in search
+    const { data: userFavorites } = await supabase
+      .from("favorite_messages")
+      .select("message_id, tag, note")
+      .eq("user_id", user.id)
+      .eq("conversation_id", conversationId);
+
+    const favById = new Map();
+    const favBySigAndTime = [];
+    (userFavorites || []).forEach((fav) => {
+      if (fav.message_id) {
+        favById.set(fav.message_id, fav);
+      }
+    });
+
+    for (const msg of matches || []) {
+      if (favById.has(msg.id)) {
+        const cleanContent = (msg.content || "").trim().toLowerCase();
+        const mediaKey = msg.media_url || "";
+        const sig = `${msg.sender_name}::${cleanContent || mediaKey}`;
+        const timeMs = msg.sent_at ? new Date(msg.sent_at).getTime() : 0;
+        favBySigAndTime.push({
+          sig,
+          timeMs,
+          fav: favById.get(msg.id),
+        });
+      }
+    }
+
+    for (const msg of uniqueMatches) {
+      let fav = favById.get(msg.id);
+
+      if (!fav && favBySigAndTime.length > 0) {
+        const cleanContent = (msg.content || "").trim().toLowerCase();
+        const mediaKey = msg.media_url || "";
+        const sig = `${msg.sender_name}::${cleanContent || mediaKey}`;
+        const timeMs = msg.sent_at ? new Date(msg.sent_at).getTime() : 0;
+
+        // ONLY match if it's the exact same sender + content AND within 36 hours (timezone shift)
+        const matched = favBySigAndTime.find(
+          (f) => f.sig === sig && Math.abs(timeMs - f.timeMs) / (1000 * 3600) <= 36
+        );
+        if (matched) {
+          fav = matched.fav;
+        }
+      }
+
+      msg.is_favorite = Boolean(fav);
+      msg.favorite_tag = fav ? (fav.tag || "General") : null;
+      msg.favorite_note = fav ? (fav.note || null) : null;
+      if (fav && fav.message_id) {
+        msg.favorite_message_id = fav.message_id;
+      }
+    }
+
     return NextResponse.json({
       matches: uniqueMatches,
       count: uniqueMatches.length,

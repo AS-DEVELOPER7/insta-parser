@@ -34,7 +34,7 @@ function DirectPageContent() {
 
   useEffect(() => {
     triggerGetProfile("", true);
-    triggerGetConversations("", true);
+    triggerGetConversations();
   }, [triggerGetProfile, triggerGetConversations]);
 
   // Synchronize URL conversationId if provided

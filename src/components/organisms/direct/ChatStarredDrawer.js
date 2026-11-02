@@ -153,7 +153,7 @@ export default function ChatStarredDrawer({
       </div>
 
       {/* ── Starred Messages List ── */}
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-[#1a1a1a] p-2 space-y-1">
+      <div className="flex-1 overflow-y-auto  p-2 space-y-3">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-64 gap-2 text-gray-500">
             <Loader2 size={24} className="animate-spin text-amber-500" />
@@ -168,7 +168,7 @@ export default function ChatStarredDrawer({
               <div
                 key={fav.id}
                 onClick={() => onSelectMessage(msg)}
-                className="group p-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-[#121212] border border-transparent hover:border-gray-200 dark:hover:border-[#252525] transition-all cursor-pointer flex flex-col gap-2 relative shadow-none hover:shadow-sm"
+                className="group p-2 rounded-2xl bg-gray-50 dark:bg-[#121212] border  border-gray-200 dark:border-[#252525] transition-all cursor-pointer flex flex-col gap-2 relative shadow-none hover:shadow-sm"
               >
                 {/* Meta row: Sender, Tag, Date, Actions */}
                 <div className="flex items-center justify-between gap-2">
@@ -194,7 +194,10 @@ export default function ChatStarredDrawer({
                       aria-label="Unstar message"
                     >
                       {removingId === msg.id ? (
-                        <Loader2 size={13} className="animate-spin text-red-500" />
+                        <Loader2
+                          size={13}
+                          className="animate-spin text-red-500"
+                        />
                       ) : (
                         <Trash2 size={13} />
                       )}
@@ -203,11 +206,12 @@ export default function ChatStarredDrawer({
                 </div>
 
                 {/* Content preview */}
-                {msg.content && !/^\s*.*?\bsent an attachment\.\s*$/i.test(msg.content) && (
-                  <p className="text-xs text-gray-800 dark:text-gray-200 line-clamp-3 leading-relaxed break-words font-normal">
-                    {msg.content}
-                  </p>
-                )}
+                {msg.content &&
+                  !/^\s*.*?\bsent an attachment\.\s*$/i.test(msg.content) && (
+                    <p className="text-xs text-gray-800 dark:text-gray-200 line-clamp-3 leading-relaxed break-words font-normal">
+                      {msg.content}
+                    </p>
+                  )}
 
                 {/* Shared Reel / Post link if present */}
                 {msg.share_url && (
@@ -219,7 +223,11 @@ export default function ChatStarredDrawer({
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 dark:bg-purple-500/15 border border-purple-500/20 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline max-w-fit transition-colors mt-0.5"
                   >
                     <Play size={11} className="fill-current flex-shrink-0" />
-                    <span>{msg.share_url.includes('/reel') ? 'Instagram Reel' : 'Shared Post'}</span>
+                    <span>
+                      {msg.share_url.includes("/reel")
+                        ? "Instagram Reel"
+                        : "Shared Post"}
+                    </span>
                     <ExternalLink size={10} className="flex-shrink-0" />
                   </a>
                 )}
@@ -227,7 +235,8 @@ export default function ChatStarredDrawer({
                 {/* Media preview (Image / Video / Audio) */}
                 {msg.media_url && (
                   <div className="mt-1">
-                    {msg.media_url.match(/\.(mp4|mov|webm)/i) || msg.media_type === 'video' ? (
+                    {msg.media_url.match(/\.(mp4|mov|webm)/i) ||
+                    msg.media_type === "video" ? (
                       <div className="relative rounded-xl overflow-hidden max-w-[220px] max-h-40 bg-black border border-gray-200 dark:border-[#282828]">
                         <video
                           src={msg.media_url}
@@ -236,9 +245,13 @@ export default function ChatStarredDrawer({
                           onClick={(e) => e.stopPropagation()}
                         />
                       </div>
-                    ) : msg.media_url.match(/\.(m4a|mp3|ogg|wav)/i) || msg.media_type === 'audio' ? (
+                    ) : msg.media_url.match(/\.(m4a|mp3|ogg|wav)/i) ||
+                      msg.media_type === "audio" ? (
                       <div className="p-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-xl flex items-center gap-2 max-w-xs">
-                        <Volume2 size={14} className="text-ig-primary flex-shrink-0" />
+                        <Volume2
+                          size={14}
+                          className="text-ig-primary flex-shrink-0"
+                        />
                         <audio
                           src={msg.media_url}
                           controls

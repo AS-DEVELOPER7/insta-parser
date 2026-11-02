@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, X, MessageCircle, ChevronLeft } from 'lucide-react';
+import { Search, X, MessageCircle, ChevronLeft, Star } from 'lucide-react';
 import ConversationItem from '@/components/molecules/direct/ConversationItem';
+import { useGetFavoritesQuery } from '@/store/api/apiSlice';
 
 export default function ChatThreadList({
   conversations = [],
@@ -12,6 +13,19 @@ export default function ChatThreadList({
   onToggleCollapse,
 }) {
   const [query, setQuery] = useState('');
+
+  // Fetch all favorites to calculate starred counts across conversations
+  const { data: favoritesData } = useGetFavoritesQuery();
+
+  const convStarredCounts = useMemo(() => {
+    const map = new Map();
+    (favoritesData?.favorites || []).forEach((fav) => {
+      if (fav.conversation_id) {
+        map.set(fav.conversation_id, (map.get(fav.conversation_id) || 0) + 1);
+      }
+    });
+    return map;
+  }, [favoritesData]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return conversations;
@@ -35,20 +49,29 @@ export default function ChatThreadList({
         <div className="w-8 h-px bg-gray-200 dark:bg-[#262626]" />
 
         <div className="flex flex-col items-center gap-2 w-full px-2 overflow-y-auto max-h-[calc(100vh-10rem)] scrollbar-none">
-          {conversations.map((conv) => (
-            <button
-              key={conv.id}
-              onClick={() => onSelectConversation?.(conv.id)}
-              title={conv.participant_name}
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm uppercase flex-shrink-0 transition-all ${
-                activeConvId === conv.id
-                  ? 'bg-ig-primary text-white ring-2 ring-ig-primary ring-offset-1 ring-offset-white dark:ring-offset-black'
-                  : 'bg-gray-200 dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-300 dark:hover:bg-[#3a3a3a]'
-              }`}
-            >
-              {conv.participant_name.charAt(0)}
-            </button>
-          ))}
+          {conversations.map((conv) => {
+            const starredCount = convStarredCounts.get(conv.id) || 0;
+            return (
+              <div key={conv.id} className="relative">
+                <button
+                  onClick={() => onSelectConversation?.(conv.id)}
+                  title={`${conv.participant_name}${starredCount > 0 ? ` (${starredCount} starred)` : ''}`}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm uppercase flex-shrink-0 transition-all ${
+                    activeConvId === conv.id
+                      ? 'bg-ig-primary text-white ring-2 ring-ig-primary ring-offset-1 ring-offset-white dark:ring-offset-black'
+                      : 'bg-gray-200 dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-300 dark:hover:bg-[#3a3a3a]'
+                  }`}
+                >
+                  {conv.participant_name.charAt(0)}
+                </button>
+                {starredCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 rounded-full flex items-center justify-center text-[8px] text-white font-bold ring-2 ring-white dark:ring-black">
+                    ★
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -103,6 +126,7 @@ export default function ChatThreadList({
               key={conv.id}
               conversation={conv}
               isActive={activeConvId === conv.id}
+              starredCount={convStarredCounts.get(conv.id) ?? conv.starred_count ?? 0}
               onClick={() => onSelectConversation?.(conv.id)}
             />
           ))
