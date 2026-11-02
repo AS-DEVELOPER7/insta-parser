@@ -11,6 +11,7 @@ export const apiSlice = createApi({
     'MediaVault',
     'Conversations',
     'Messages',
+    'Favorites',
   ],
   endpoints: (builder) => ({
     getProfile: builder.query({
@@ -69,10 +70,46 @@ export const apiSlice = createApi({
       query: ({ conversationId, limit = 20, offset = 0, type = 'all' }) =>
         `/messages/media?conversationId=${conversationId}&limit=${limit}&offset=${offset}&type=${type}`,
     }),
+    getFavorites: builder.query({
+      query: (params) => {
+        if (!params) return '/favorites';
+        const search = new URLSearchParams();
+        if (params.conversationId) search.set('conversationId', params.conversationId);
+        if (params.tag) search.set('tag', params.tag);
+        if (params.query) search.set('query', params.query);
+        const qs = search.toString();
+        return qs ? `/favorites?${qs}` : '/favorites';
+      },
+      providesTags: ['Favorites'],
+    }),
+    addFavorite: builder.mutation({
+      query: (body) => ({
+        url: '/favorites',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Favorites'],
+    }),
+    removeFavorite: builder.mutation({
+      query: ({ messageId }) => ({
+        url: `/favorites?messageId=${messageId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Favorites'],
+    }),
+    updateFavorite: builder.mutation({
+      query: (body) => ({
+        url: '/favorites',
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Favorites'],
+    }),
   }),
 });
 
 export const {
+  useGetProfileQuery,
   useLazyGetProfileQuery,
   useLazyGetPreferencesQuery,
   useLazyGetConnectionsQuery,
@@ -82,4 +119,9 @@ export const {
   useLazyGetMessagesQuery,
   useLazySearchMessagesQuery,
   useLazyGetMediaMessagesQuery,
+  useGetFavoritesQuery,
+  useLazyGetFavoritesQuery,
+  useAddFavoriteMutation,
+  useRemoveFavoriteMutation,
+  useUpdateFavoriteMutation,
 } = apiSlice;

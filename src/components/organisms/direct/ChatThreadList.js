@@ -56,13 +56,13 @@ export default function ChatThreadList({
 
   /* ── Expanded ── */
   return (
-    <div className="w-full md:w-[320px] flex-shrink-0 flex flex-col h-full bg-slate-50 dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-[#262626] transition-all duration-300">
+    <div className="w-full md:w-[320px] flex-shrink-0 flex flex-col h-full bg-white dark:bg-[#000000] border-r border-gray-200 dark:border-[#222222] transition-all duration-300">
       {/* Header */}
-      <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+      <div className="px-5 pt-4 pb-3 flex items-center justify-between">
         <h2 className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">
           Messages
         </h2>
-        <div className="flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1">
           <button
             onClick={onToggleCollapse}
             className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-[#1a1a1a] transition-colors"
@@ -75,7 +75,7 @@ export default function ChatThreadList({
 
       {/* Search */}
       <div className="px-4 pb-3">
-        <div className="flex items-center gap-2.5 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] focus-within:border-ig-primary rounded-2xl px-3.5 py-2.5 transition-colors shadow-sm">
+        <div className="flex items-center gap-2.5 bg-gray-50 dark:bg-[#141414] border border-gray-200 dark:border-[#282828] focus-within:border-ig-primary rounded-xl px-3.5 py-2.5 transition-colors shadow-sm">
           <Search size={14} className="text-gray-400 flex-shrink-0" />
           <input
             type="text"

@@ -87,18 +87,20 @@ export default function ChatSearchOverlay({
   }, [query, conversationId, triggerSearch]);
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col bg-white dark:bg-[#0d0d0d] transition-colors duration-200">
+    <div className="absolute inset-0 z-20 flex flex-col bg-white dark:bg-[#000000] transition-colors duration-200">
       {/* ── Top Header / Search Bar ── */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-[#1f1f1f] bg-white dark:bg-[#0d0d0d] flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-[#222222] bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md flex-shrink-0">
         <button
           onClick={onClose}
-          className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors flex-shrink-0"
+          className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors flex-shrink-0"
+          title="Back to conversation"
+          aria-label="Back to conversation"
         >
           <ArrowLeft size={20} />
         </button>
 
         {/* Input Field */}
-        <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-[#2a2a2a] focus-within:border-ig-primary/60 transition-colors">
+        <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-[#161616] rounded-xl border border-gray-200 dark:border-[#282828] focus-within:border-ig-primary/60 transition-colors">
           <Search size={16} className="text-gray-400 flex-shrink-0" />
           <input
             ref={inputRef}
@@ -106,7 +108,7 @@ export default function ChatSearchOverlay({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`Search in chat with ${participantName}...`}
-            className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
+            className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none min-w-0"
           />
           {query && (
             <button
@@ -115,7 +117,7 @@ export default function ChatSearchOverlay({
                 setResults([]);
                 inputRef.current?.focus();
               }}
-              className="text-gray-400 hover:text-gray-900 dark:hover:text-white flex-shrink-0"
+              className="text-gray-400 hover:text-gray-900 dark:hover:text-white flex-shrink-0 p-1"
             >
               <X size={16} />
             </button>
@@ -125,7 +127,7 @@ export default function ChatSearchOverlay({
 
       {/* ── Subheader / Count ── */}
       {query.trim() && (
-        <div className="px-5 py-2.5 bg-slate-50 dark:bg-[#090909] border-b border-gray-200 dark:border-[#1f1f1f] flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 flex-shrink-0">
+        <div className="px-5 py-2.5 bg-gray-50 dark:bg-[#121212] border-b border-gray-200 dark:border-[#222222] flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 flex-shrink-0">
           <span>
             {isFetching
               ? 'Searching...'
@@ -151,12 +153,14 @@ export default function ChatSearchOverlay({
             return (
               <button
                 key={msg.id}
-                onClick={() => onSelectMessage(msg)}
+                onClick={() => onSelectMessage(msg, query)}
                 className="w-full flex items-center gap-3.5 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-[#141414] active:bg-gray-100 dark:active:bg-[#1a1a1a] text-left transition-colors group"
               >
                 {/* Avatar */}
-                <div className="w-11 h-11 rounded-full bg-ig-primary flex items-center justify-center font-bold text-white text-base uppercase flex-shrink-0 shadow-sm">
-                  {senderInitial}
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] p-0.5 flex-shrink-0 shadow-sm">
+                  <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center font-bold text-gray-900 dark:text-white text-xs uppercase">
+                    {senderInitial}
+                  </div>
                 </div>
 
                 {/* Info */}
@@ -174,6 +178,18 @@ export default function ChatSearchOverlay({
                     <HighlightText text={msg.content || (msg.media_url ? '[Media Message]' : '[Shared Content]')} query={query} />
                   </p>
                 </div>
+
+                {/* Media preview thumbnail if present */}
+                {msg.media_url && !msg.media_url.match(/\.(mp4|mov|webm|m4a|mp3)/i) && (
+                  <div className="w-11 h-11 rounded-lg overflow-hidden border border-gray-200 dark:border-[#282828] flex-shrink-0 ml-2">
+                    <img
+                      src={msg.media_url}
+                      alt="Thumbnail"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
               </button>
             );
           })

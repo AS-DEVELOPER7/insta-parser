@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS public.saved_posts CASCADE;
 DROP TABLE IF EXISTS public.post_media CASCADE;
 DROP TABLE IF EXISTS public.posts CASCADE;
 DROP TABLE IF EXISTS public.stories CASCADE;
+DROP TABLE IF EXISTS public.favorite_messages CASCADE;
 DROP TABLE IF EXISTS public.messages CASCADE;
 DROP TABLE IF EXISTS public.conversations CASCADE;
 DROP TABLE IF EXISTS public.connections CASCADE;
@@ -120,17 +121,34 @@ CREATE TABLE public.stories (
     CONSTRAINT unique_user_story_time UNIQUE (user_id, taken_at)
 );
 
--- 11. ENABLE ROW LEVEL SECURITY (RLS)
+-- 11. FAVORITE MESSAGES TABLE (Starred messages with optional tags & notes)
+CREATE TABLE public.favorite_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    message_id UUID REFERENCES public.messages(id) ON DELETE CASCADE NOT NULL,
+    conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE NOT NULL,
+    tag TEXT DEFAULT 'General',
+    note TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT unique_user_favorite_message UNIQUE (user_id, message_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fav_messages_user_created ON public.favorite_messages(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_fav_messages_conv ON public.favorite_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_fav_messages_tag ON public.favorite_messages(user_id, tag);
+
+-- 12. ENABLE ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.favorite_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.connections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.post_media ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
 
--- 12. ROW LEVEL SECURITY POLICIES WITH 'WITH CHECK' CLAUSES
+-- 13. ROW LEVEL SECURITY POLICIES WITH 'WITH CHECK' CLAUSES
 CREATE POLICY "Users can manage their own profile" ON public.profiles FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can access conversations" ON public.conversations FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can access messages" ON public.messages FOR ALL USING (
@@ -138,6 +156,7 @@ CREATE POLICY "Users can access messages" ON public.messages FOR ALL USING (
 ) WITH CHECK (
     EXISTS (SELECT 1 FROM public.conversations WHERE conversations.id = messages.conversation_id AND conversations.user_id = auth.uid())
 );
+CREATE POLICY "Users can manage their favorite messages" ON public.favorite_messages FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can access connections" ON public.connections FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can access activity logs" ON public.activity_logs FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can access their posts" ON public.posts FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
@@ -148,7 +167,7 @@ CREATE POLICY "Users can access post media" ON public.post_media FOR ALL USING (
 );
 CREATE POLICY "Users can access their stories" ON public.stories FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
--- 13. GRANT PERMISSIONS TO AUTHENTICATED & ANON ROLES
+-- 14. GRANT PERMISSIONS TO AUTHENTICATED & ANON ROLES
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated, anon;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated, anon;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO authenticated, anon;

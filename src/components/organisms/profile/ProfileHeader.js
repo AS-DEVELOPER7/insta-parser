@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { User, Lock, UploadCloud, Sliders, LogOut, Globe } from "lucide-react";
+import { User, Lock, UploadCloud, Sliders, LogOut, Globe, Settings, History, Star } from "lucide-react";
 
 export default function ProfileHeader({ profile, stats, onLogout }) {
   const username = profile?.username || "";
@@ -43,25 +43,39 @@ export default function ProfileHeader({ profile, stats, onLogout }) {
             )}
           </div>
 
-          {/* Quick Action Buttons: Upload, Settings, Logout (Mobile view only, desktop uses left sidebar) */}
-          <div className="flex md:hidden flex-wrap items-center justify-center sm:justify-start gap-2 mb-3">
+          {/* Quick Action Navigation (Saved, Settings, Activity, Preferences, Logout) */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-4">
             <Link
-              href="/upload"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ig-primary hover:bg-ig-primary-hover text-white rounded-xl text-xs font-semibold shadow-md transition-colors"
+              href="/saved"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-xl text-xs font-semibold transition-colors"
             >
-              <UploadCloud size={14} />
-              <span>Upload Archive</span>
+              <Star size={14} className="fill-amber-400" />
+              <span>Saved Messages</span>
+            </Link>
+            <Link
+              href="/settings"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gray-100 dark:bg-[#1a1a1a] hover:bg-gray-200 dark:hover:bg-[#252525] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2e2e2e] rounded-xl text-xs font-semibold transition-colors"
+            >
+              <Settings size={14} />
+              <span>Settings</span>
+            </Link>
+            <Link
+              href="/activity-log"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gray-100 dark:bg-[#1a1a1a] hover:bg-gray-200 dark:hover:bg-[#252525] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2e2e2e] rounded-xl text-xs font-semibold transition-colors"
+            >
+              <History size={14} />
+              <span>Activity</span>
             </Link>
             <Link
               href="/preferences"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-[#1f1f1f] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-[#333] rounded-xl text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gray-100 dark:bg-[#1a1a1a] hover:bg-gray-200 dark:hover:bg-[#252525] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2e2e2e] rounded-xl text-xs font-semibold transition-colors"
             >
               <Sliders size={14} />
-              <span>Settings</span>
+              <span>Preferences</span>
             </Link>
             <button
               onClick={onLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-xl text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-xl text-xs font-semibold transition-colors"
             >
               <LogOut size={14} />
               <span>Log Out</span>

@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Sidebar from '@/components/layout/Sidebar';
-import BottomNav from '@/components/layout/BottomNav';
+import MainLayoutTemplate from '@/components/templates/MainLayoutTemplate';
 import { useTheme, THEMES } from '@/components/providers/ThemeProvider';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -74,10 +73,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white dark:bg-[#050505] text-gray-900 dark:text-white transition-colors duration-200">
-      <Sidebar />
-
-      <main className="flex-1 md:ml-[72px] pb-24 md:pb-10 px-4 md:px-10 max-w-4xl mx-auto pt-8">
+    <MainLayoutTemplate userProfile={null}>
+      <div className="py-8 px-4 sm:px-6 md:px-10 max-w-4xl mx-auto">
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
@@ -230,9 +227,7 @@ export default function SettingsPage() {
             </form>
           </div>
         </div>
-      </main>
-
-      <BottomNav />
-    </div>
+      </div>
+    </MainLayoutTemplate>
   );
 }

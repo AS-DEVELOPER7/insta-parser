@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import MainLayoutTemplate from "@/components/templates/MainLayoutTemplate";
 import ChatThreadList from "@/components/organisms/direct/ChatThreadList";
 import ChatWindow from "@/components/organisms/direct/ChatWindow";
@@ -11,7 +12,11 @@ import {
   useLazyGetMessagesQuery,
 } from "@/store/api/apiSlice";
 
-export default function DirectPage() {
+function DirectPageContent() {
+  const searchParams = useSearchParams();
+  const urlConvId = searchParams.get("conversationId");
+  const urlMsgId = searchParams.get("messageId");
+
   const [triggerGetProfile, { data: profileData }] = useLazyGetProfileQuery();
   const [
     triggerGetConversations,
@@ -19,7 +24,7 @@ export default function DirectPage() {
   ] = useLazyGetConversationsQuery();
 
   const conversations = convsData?.conversations || [];
-  const [activeConvId, setActiveConvId] = useState(null);
+  const [activeConvId, setActiveConvId] = useState(urlConvId || null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [
@@ -32,18 +37,28 @@ export default function DirectPage() {
     triggerGetConversations("", true);
   }, [triggerGetProfile, triggerGetConversations]);
 
-  // Auto-select first conversation on desktop screens (>=768px) only
+  // Synchronize URL conversationId if provided
+  useEffect(() => {
+    if (urlConvId) {
+      setActiveConvId(urlConvId);
+    }
+  }, [urlConvId]);
+
+  // Auto-select first conversation on desktop screens (>=768px) only if none targeted
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth >= 768) {
-      if (conversations.length > 0 && !activeConvId) {
+      if (conversations.length > 0 && !activeConvId && !urlConvId) {
         setActiveConvId(conversations[0].id);
       }
     }
-  }, [conversations, activeConvId]);
+  }, [conversations, activeConvId, urlConvId]);
 
   useEffect(() => {
     if (activeConvId) {
       triggerGetMessages({ conversationId: activeConvId, limit: 200 }, true);
+      if (typeof window !== "undefined") {
+        window.scrollTo(0, 0);
+      }
     }
   }, [activeConvId, triggerGetMessages]);
 
@@ -87,11 +102,26 @@ export default function DirectPage() {
                 messages={messages}
                 isLoading={isChatLoading}
                 onBack={() => setActiveConvId(null)}
+                initialTargetMessageId={urlMsgId}
               />
             </div>
           </>
         )}
       </div>
     </MainLayoutTemplate>
+  );
+}
+
+export default function DirectPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen bg-white dark:bg-black flex items-center justify-center">
+          <ChatSkeleton />
+        </div>
+      }
+    >
+      <DirectPageContent />
+    </Suspense>
   );
 }

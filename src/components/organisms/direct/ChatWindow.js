@@ -12,22 +12,24 @@ import {
   Search,
   Images,
   X,
-  ChevronUp,
-  ChevronDown,
   ArrowLeft,
   Loader2,
+  Star,
 } from "lucide-react";
 import ChatMediaGallery from "@/components/organisms/direct/ChatMediaGallery";
 import ChatSearchOverlay from "@/components/organisms/direct/ChatSearchOverlay";
+import ChatStarredDrawer from "@/components/organisms/direct/ChatStarredDrawer";
 import MediaLightboxModal from "@/components/molecules/media/MediaLightboxModal";
 import MessageBubble from "@/components/molecules/MessageBubble";
 import EmptyChatState from "@/components/molecules/direct/EmptyChatState";
 import Skeleton from "@/components/atoms/Skeleton";
 import {
   useLazyGetMessagesQuery,
-  useLazySearchMessagesQuery,
   useLazyGetProfileQuery,
   useLazyGetMediaMessagesQuery,
+  useGetFavoritesQuery,
+  useAddFavoriteMutation,
+  useRemoveFavoriteMutation,
 } from "@/store/api/apiSlice";
 import { PAGINATION_LIMITS } from "@/constants/config";
 
@@ -73,20 +75,69 @@ function formatDateSeparator(dateStr) {
   return `${dateFormatted}, ${timeFormatted}`;
 }
 
+function scrollToElementInContainer(container, el, { behavior = "smooth", block = "center" } = {}) {
+  if (!container || !el) return;
+  const containerRect = container.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const relativeTop = elRect.top - containerRect.top + container.scrollTop;
+  let targetScrollTop = relativeTop;
+  if (block === "center") {
+    targetScrollTop = relativeTop - (container.clientHeight / 2) + (el.clientHeight / 2);
+  } else if (block === "end") {
+    targetScrollTop = relativeTop - container.clientHeight + el.clientHeight;
+  }
+  container.scrollTo({
+    top: Math.max(0, targetScrollTop),
+    behavior,
+  });
+}
+
 export default function ChatWindow({
   activeConv,
   messages: initialPropMessages = [],
   isLoading: isPropLoading = false,
   onBack,
+  initialTargetMessageId,
 }) {
   const [showGallery, setShowGallery] = useState(false);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+  const [showStarredDrawer, setShowStarredDrawer] = useState(false);
   const [lightbox, setLightbox] = useState(null);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [matchIndex, setMatchIndex] = useState(0);
   const [highlightedMsgId, setHighlightedMsgId] = useState(null);
+
+  // Favorites data for current active conversation
+  const { data: favoritesData } = useGetFavoritesQuery(
+    { conversationId: activeConv?.id },
+    { skip: !activeConv?.id }
+  );
+  const favoriteMessageIds = useMemo(
+    () => new Set(favoritesData?.favoriteMessageIds || []),
+    [favoritesData]
+  );
+  const [addFavorite] = useAddFavoriteMutation();
+  const [removeFavorite] = useRemoveFavoriteMutation();
+
+  const handleToggleFavorite = useCallback(
+    async (msg) => {
+      if (!msg?.id || !activeConv?.id) return;
+      const isFav = favoriteMessageIds.has(msg.id);
+      try {
+        if (isFav) {
+          await removeFavorite({ messageId: msg.id }).unwrap();
+        } else {
+          await addFavorite({
+            messageId: msg.id,
+            conversationId: activeConv.id,
+            tag: 'General',
+          }).unwrap();
+        }
+      } catch (err) {
+        console.error('Error toggling favorite:', err);
+      }
+    },
+    [activeConv?.id, favoriteMessageIds, addFavorite, removeFavorite]
+  );
 
   // Paginated bi-directional message state
   const [loadedMessages, setLoadedMessages] = useState([]);
@@ -99,14 +150,11 @@ export default function ChatWindow({
   const [isLoadingNewer, setIsLoadingNewer] = useState(false);
 
   const bottomRef = useRef(null);
-  const searchInputRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const prevScrollHeightRef = useRef(0);
   const messageRefs = useRef({});
 
   const [triggerGetMessages] = useLazyGetMessagesQuery();
-  const [triggerSearch, { isFetching: isSearching }] =
-    useLazySearchMessagesQuery();
 
   // Active messages list for current conversation (strictly loadedMessages)
   const messages = loadedMessages;
@@ -235,8 +283,6 @@ export default function ChatWindow({
     let isMounted = true;
     setIsLoadingInitial(true);
     setSearchQuery("");
-    setSearchResults([]);
-    setMatchIndex(0);
     setHighlightedMsgId(null);
 
     triggerGetMessages(
@@ -407,54 +453,37 @@ export default function ChatWindow({
     }
   }, [loadedMessages]);
 
-  // Auto-scroll to bottom ONCE on initial conversation load
+  // Reset any global window scroll and panels when active conversation changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+    }
+    setShowSearchOverlay(false);
+    setShowGallery(false);
+    setShowStarredDrawer(false);
+    setSearchQuery("");
+    setHighlightedMsgId(null);
+  }, [activeConv?.id]);
+
+  // Auto-scroll to bottom ONCE on initial conversation load (strictly inside scroll container)
   useEffect(() => {
     if (
       !showGallery &&
-      !searchOpen &&
+      !showSearchOverlay &&
       loadedMessages.length > 0 &&
       isInitialLoadRef.current
     ) {
-      bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: "auto",
+        });
+      }
       isInitialLoadRef.current = false;
     }
-  }, [loadedMessages, showGallery, searchOpen]);
+  }, [loadedMessages, showGallery, showSearchOverlay]);
 
-  // Focus search input when search bar opens
-  useEffect(() => {
-    if (searchOpen) searchInputRef.current?.focus();
-  }, [searchOpen]);
-
-  // Debounced server search execution
-  useEffect(() => {
-    if (!searchQuery.trim() || !activeConv?.id) {
-      setSearchResults([]);
-      setMatchIndex(0);
-      setHighlightedMsgId(null);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      triggerSearch({ conversationId: activeConv.id, query: searchQuery }, true)
-        .unwrap()
-        .then((res) => {
-          const matches = res.matches || [];
-          setSearchResults(matches);
-          setMatchIndex(0);
-
-          if (matches.length > 0) {
-            jumpToMatch(matches[0]);
-          } else {
-            setHighlightedMsgId(null);
-          }
-        })
-        .catch((err) => console.error("Search query error:", err));
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery, activeConv?.id, triggerSearch]);
-
-  // Jump to specific match (loads context if message not currently in memory)
+  // Jump to specific match (strictly within container, never scrolls the window or header)
   const jumpToMatch = useCallback(
     (targetMatch) => {
       if (!targetMatch) return;
@@ -464,8 +493,11 @@ export default function ChatWindow({
 
       if (isLoaded) {
         const el = messageRefs.current[targetMatch.id];
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (el && scrollContainerRef.current) {
+          scrollToElementInContainer(scrollContainerRef.current, el, {
+            behavior: "smooth",
+            block: "center",
+          });
         }
       } else {
         // Fetch context surrounding target match
@@ -487,8 +519,12 @@ export default function ChatWindow({
 
               setTimeout(() => {
                 const el = messageRefs.current[targetMatch.id];
-                if (el)
-                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                if (el && scrollContainerRef.current) {
+                  scrollToElementInContainer(scrollContainerRef.current, el, {
+                    behavior: "smooth",
+                    block: "center",
+                  });
+                }
               }, 100);
             }
           })
@@ -499,27 +535,22 @@ export default function ChatWindow({
     [activeConv?.id, loadedMessages, triggerGetMessages],
   );
 
-  const handleNextMatch = () => {
-    if (searchResults.length === 0) return;
-    const nextIdx = matchIndex < searchResults.length - 1 ? matchIndex + 1 : 0;
-    setMatchIndex(nextIdx);
-    jumpToMatch(searchResults[nextIdx]);
-  };
+  // Jump to specific message on initial load if targeted from Saved Messages view
+  useEffect(() => {
+    if (initialTargetMessageId && activeConv?.id) {
+      jumpToMatch({ id: initialTargetMessageId });
+    }
+  }, [initialTargetMessageId, activeConv?.id, jumpToMatch]);
 
-  const handlePrevMatch = () => {
-    if (searchResults.length === 0) return;
-    const prevIdx = matchIndex > 0 ? matchIndex - 1 : searchResults.length - 1;
-    setMatchIndex(prevIdx);
-    jumpToMatch(searchResults[prevIdx]);
-  };
-
-  const handleSearchClose = () => {
-    setSearchOpen(false);
-    setSearchQuery("");
-    setSearchResults([]);
-    setMatchIndex(0);
-    setHighlightedMsgId(null);
-  };
+  // Gently clear message highlight and searched query after 4 seconds
+  useEffect(() => {
+    if (!highlightedMsgId) return;
+    const timer = setTimeout(() => {
+      setHighlightedMsgId(null);
+      setSearchQuery("");
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [highlightedMsgId]);
 
   if (!activeConv) {
     return (
@@ -530,125 +561,102 @@ export default function ChatWindow({
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-[#0d0d0d] relative overflow-hidden min-w-0">
-      {/* ── Top Header ── */}
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-200 dark:border-[#1f1f1f] bg-white dark:bg-[#0d0d0d] flex-shrink-0 z-10">
-        {/* Mobile Back Button */}
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="md:hidden w-8 h-8 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors -ml-1 mr-1 flex-shrink-0"
-            title="Back to conversations"
-          >
-            <ArrowLeft size={18} />
-          </button>
-        )}
+    <div className="flex-1 flex flex-col bg-white dark:bg-[#000000] relative overflow-hidden min-w-0 h-full">
+      {/* ── Sticky Top Header & Pinned Search Area ── */}
+      <div className="sticky top-0 z-20 flex-shrink-0 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md border-b border-gray-200 dark:border-[#222222] shadow-sm">
+        {/* Top Header */}
+        <div className="flex items-center gap-3 px-4 sm:px-5 py-3">
+          {/* Mobile Back Button */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors -ml-1 mr-0.5 flex-shrink-0"
+              title="Back to conversations"
+              aria-label="Back to conversations"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
 
-        {/* Avatar */}
-        <div className="w-10 h-10 rounded-full bg-ig-primary flex items-center justify-center font-bold text-white text-base uppercase flex-shrink-0">
-          {activeConv.participant_name.charAt(0)}
-        </div>
+          {/* Avatar */}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] p-0.5 flex-shrink-0 shadow-sm">
+            <div className="w-full h-full rounded-full bg-white dark:bg-black flex items-center justify-center font-bold text-gray-900 dark:text-white text-sm uppercase">
+              {activeConv.participant_name.charAt(0)}
+            </div>
+          </div>
 
-        {/* Name */}
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate leading-tight">
-            {activeConv.participant_name}
-          </h3>
-          <span className="text-[11px] text-gray-500 dark:text-gray-400">
-            {totalCount > 0
-              ? `${totalCount.toLocaleString()} messages`
-              : "Instagram Archive"}
-          </span>
-        </div>
+          {/* Name */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate leading-tight">
+              {activeConv.participant_name}
+            </h3>
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+              {totalCount > 0
+                ? `${totalCount.toLocaleString()} messages`
+                : "Instagram Archive"}
+            </span>
+          </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-1">
-          {/* In-chat search button */}
-          <button
-            onClick={() => setShowSearchOverlay(true)}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${
-              showSearchOverlay
-                ? "bg-ig-primary/20 text-ig-primary"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
-            }`}
-            title="Search in conversation"
-          >
-            <Search size={17} />
-          </button>
+          {/* Action buttons */}
+          <div className="flex items-center gap-1.5">
+            {/* In-chat search toggle (opens full search view directly) */}
+            <button
+              onClick={() => setShowSearchOverlay((prev) => !prev)}
+              className={`w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl transition-colors ${
+                showSearchOverlay
+                  ? "bg-ig-primary/20 text-ig-primary"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
+              }`}
+              title="Search in conversation"
+              aria-label="Search in conversation"
+            >
+              <Search size={18} />
+            </button>
 
-          {/* Media gallery button */}
-          <button
-            onClick={() => setShowGallery((v) => !v)}
-            className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-semibold transition-colors border ${
-              showGallery
-                ? "bg-ig-primary/20 border-ig-primary/40 text-ig-primary"
-                : "bg-gray-100 dark:bg-[#1a1a1a] border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-[#3a3a3a]"
-            }`}
-            title="View shared media"
-          >
-            <Images size={15} />
-            <span>Media</span>
-            {mediaCount > 0 && (
-              <span className="text-ig-primary text-[10px] font-bold w-4 h-4 flex items-center justify-center leading-none">
-                {mediaCount}
-              </span>
-            )}
-          </button>
+            {/* Starred messages drawer toggle */}
+            <button
+              onClick={() => setShowStarredDrawer(true)}
+              className={`flex items-center gap-1.5 px-3 h-10 min-h-[40px] rounded-xl text-xs font-semibold transition-colors border ${
+                showStarredDrawer || (favoritesData?.count > 0)
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20"
+                  : "bg-gray-100 dark:bg-[#1a1a1a] border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-[#3a3a3a]"
+              }`}
+              title="Starred messages in this chat"
+              aria-label="Starred messages in this chat"
+            >
+              <Star
+                size={15}
+                className={favoritesData?.count > 0 ? "fill-amber-400 text-amber-500" : ""}
+              />
+              <span className="hidden sm:inline">Starred</span>
+              {favoritesData?.count > 0 && (
+                <span className="text-amber-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 leading-none">
+                  {favoritesData.count}
+                </span>
+              )}
+            </button>
+
+            {/* Media gallery button */}
+            <button
+              onClick={() => setShowGallery((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 h-10 min-h-[40px] rounded-xl text-xs font-semibold transition-colors border ${
+                showGallery
+                  ? "bg-ig-primary/20 border-ig-primary/40 text-ig-primary"
+                  : "bg-gray-100 dark:bg-[#1a1a1a] border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-[#3a3a3a]"
+              }`}
+              title="View shared media"
+            >
+              <Images size={16} />
+              <span className="hidden sm:inline">Media</span>
+              {mediaCount > 0 && (
+                <span className="text-ig-primary text-[10px] font-bold w-4 h-4 flex items-center justify-center leading-none">
+                  {mediaCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* ── Server Search Bar ── */}
-      {searchOpen && (
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-100 dark:bg-[#111] border-b border-gray-200 dark:border-[#1f1f1f] flex-shrink-0">
-          <Search size={14} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search all historical messages…"
-            className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
-          />
-
-          {isSearching ? (
-            <Loader2
-              size={15}
-              className="animate-spin text-ig-primary flex-shrink-0"
-            />
-          ) : searchQuery ? (
-            <>
-              <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">
-                {searchResults.length > 0
-                  ? `${matchIndex + 1} of ${searchResults.length}`
-                  : "No matches"}
-              </span>
-              <button
-                onClick={handlePrevMatch}
-                className="text-gray-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-30"
-                disabled={searchResults.length === 0}
-                title="Previous match"
-              >
-                <ChevronUp size={16} />
-              </button>
-              <button
-                onClick={handleNextMatch}
-                className="text-gray-400 hover:text-gray-900 dark:hover:text-white disabled:opacity-30"
-                disabled={searchResults.length === 0}
-                title="Next match"
-              >
-                <ChevronDown size={16} />
-              </button>
-            </>
-          ) : null}
-
-          <button
-            onClick={handleSearchClose}
-            className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
 
       {/* ── Messages area ── */}
       {isLoading ? (
@@ -744,6 +752,8 @@ export default function ChatWindow({
                       message={msg}
                       isMe={isMe}
                       highlight={searchQuery || undefined}
+                      isFavorite={favoriteMessageIds.has(msg.id)}
+                      onToggleFavorite={handleToggleFavorite}
                       onMediaClick={(lightboxData) => setLightbox(lightboxData)}
                     />
                   </div>
@@ -787,11 +797,25 @@ export default function ChatWindow({
           conversationId={activeConv.id}
           participantName={activeConv.participant_name}
           ownerUsername={activeConv.owner_username}
-          onSelectMessage={(msg) => {
+          onSelectMessage={(msg, query) => {
             setShowSearchOverlay(false);
+            if (query) setSearchQuery(query);
             jumpToMatch(msg);
           }}
           onClose={() => setShowSearchOverlay(false)}
+        />
+      )}
+
+      {/* ── Starred messages drawer overlay ── */}
+      {showStarredDrawer && (
+        <ChatStarredDrawer
+          conversationId={activeConv.id}
+          participantName={activeConv.participant_name}
+          onSelectMessage={(msg) => {
+            setShowStarredDrawer(false);
+            jumpToMatch(msg);
+          }}
+          onClose={() => setShowStarredDrawer(false)}
         />
       )}
       {/* ── Lightbox Modal for direct media preview ── */}
